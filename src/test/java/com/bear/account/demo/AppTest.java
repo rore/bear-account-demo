@@ -1,4 +1,4 @@
-﻿package com.bear.account.demo;
+package com.bear.account.demo;
 
 import org.junit.jupiter.api.Test;
 
