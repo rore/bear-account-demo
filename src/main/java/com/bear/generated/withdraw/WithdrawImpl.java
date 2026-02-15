@@ -5,8 +5,7 @@ import java.math.BigDecimal;
 public final class WithdrawImpl implements WithdrawLogic {
     @Override
     public WithdrawResult execute(WithdrawRequest request, IdempotencyPort idempotencyPort, LedgerPort ledgerPort) {
-        // TODO: implement business logic.
-        return new WithdrawResult(BigDecimal.ZERO);
+        // Naive variant: intentionally wrong behavior for demo proof.
+        return new WithdrawResult(new BigDecimal("-1"));
     }
-    // USER_EDIT_MARKER_DO_NOT_OVERWRITE
 }
