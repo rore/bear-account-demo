@@ -22,3 +22,13 @@ Check:
 ```powershell
 .\gradlew.bat --no-daemon :app:run --args="check spec/fixtures/withdraw.bear.yaml --project ../bear-account-demo"
 ```
+
+## Jump To Scenario Branches
+
+```powershell
+git checkout scenario/naive-fail-withdraw
+# or
+git checkout scenario/corrected-pass-withdraw
+```
+
+Each scenario branch also includes a local `doc/SCENARIO.md` with exact expected output snippets.
