@@ -59,7 +59,7 @@ M1 sync model:
 ## M1 Manual Sync Checklist
 
 When source texts change in `bear-cli/doc/m1-canonical/`:
-1. Update demo copies (`doc/BEAR_PRIMER.md`, `AGENT.md`, `WORKFLOW.md`).
+1. Update demo copies (`doc/BEAR_PRIMER.md`, `BEAR_AGENT.md`, `WORKFLOW.md`).
 2. Keep `Source-of-truth` lines accurate.
 3. Keep domain docs (`doc/spec/*`) owned in demo and synced with current behavior.
 4. Confirm canonical gate still matches docs.

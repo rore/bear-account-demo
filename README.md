@@ -4,7 +4,7 @@ Standalone M1 demo repository for BEAR agent workflow proof.
 
 ## Agent Bootstrap
 
-Codex sessions auto-load AGENTS.md at repo root. This demo declares the BEAR_AGENT profile there and routes behavior to AGENT.md, WORKFLOW.md, and doc/BEAR_PRIMER.md.
+Codex sessions auto-load AGENTS.md at repo root. This demo declares the BEAR_AGENT profile there and routes behavior to BEAR_AGENT.md, WORKFLOW.md, and doc/BEAR_PRIMER.md.
 
 ## M1 Goal
 
@@ -70,3 +70,4 @@ Legacy/non-canonical branches:
 
 Evaluator runbooks and expected outcomes are intentionally not stored in this repo.
 They live in `bear-cli/doc/m1-eval/`.
+
