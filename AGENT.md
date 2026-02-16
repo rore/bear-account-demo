@@ -7,6 +7,9 @@ M1 sync model:
 - This file is committed directly in demo for isolated sessions.
 - Sync from source-of-truth is manual in M1.
 
+Session profile:
+- BEAR_AGENT (declared in AGENTS.md for auto-loaded sessions).
+
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
@@ -65,3 +68,4 @@ Interpretation:
 - `3` => drift (regen/update flow required)
 - `4` => test/verification failure
 - `2` => IR/schema/semantic issue
+
