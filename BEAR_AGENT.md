@@ -1,4 +1,4 @@
-# AGENT.md (Demo Contract, M1)
+# BEAR_AGENT.md (Demo Contract, M1)
 
 Source-of-truth:
 - `bear-cli/doc/m1-canonical/AGENT.md`
@@ -68,4 +68,5 @@ Interpretation:
 - `3` => drift (regen/update flow required)
 - `4` => test/verification failure
 - `2` => IR/schema/semantic issue
+
 
