@@ -8,7 +8,7 @@ This repo is structured to show BEAR in an agentic workflow using a stable basel
 
 `main` is the canonical spec-driven baseline:
 - contains demo spec and minimal runnable scaffold
-- contains scenario index and runbook
+- contains project documentation
 - does not contain intentionally naive/failing scenario variants
 - does not contain intentional drift artifacts
 
@@ -28,7 +28,7 @@ This repo is structured to show BEAR in an agentic workflow using a stable basel
 
 ## Scenario Branches
 
-See `doc/SCENARIOS.md` for branch matrix and expected outputs.
+See project docs for branch details.
 
 Current scenario branches:
 - `scenario/naive-fail-withdraw`
@@ -36,3 +36,4 @@ Current scenario branches:
 
 Reserved next branch:
 - `scenario/boundary-expansion-visible`
+
