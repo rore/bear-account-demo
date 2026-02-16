@@ -32,4 +32,4 @@ Invariant:
 - `non_negative(balance)`
 
 Local IR source of truth in this repo:
-- `spec/withdraw.bear.yaml`
+- `spec/*.bear.yaml` (created during greenfield bootstrap)

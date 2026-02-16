@@ -39,7 +39,7 @@ Expected local BEAR CLI location:
 Compile baseline generated artifacts:
 
 ```powershell
-.\bin\bear.ps1 compile spec/withdraw.bear.yaml --project .
+.\bin\bear.ps1 compile <your-ir-file> --project .
 ```
 
 Run the canonical gate:
@@ -51,7 +51,7 @@ Run the canonical gate:
 Bash:
 
 ```sh
-./bin/bear.sh compile spec/withdraw.bear.yaml --project .
+./bin/bear.sh compile <your-ir-file> --project .
 ./bin/bear-all.sh
 ```
 
