@@ -7,6 +7,3 @@ Rules:
 - no overdraft: resulting `balance` must be non-negative
 - idempotency: same `txId` must not double-apply withdraw
 - ledger write should represent exactly one resulting balance on success
-
-Boundary governance:
-- any new external capability or operation requires IR update first
