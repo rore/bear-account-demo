@@ -1,8 +1,14 @@
-# Account Demo Spec (v0)
+# Account Demo Spec (v0 / M1)
 
-This demo currently covers one application behavior: `Withdraw`.
+This demo centers on one behavior: `Withdraw`.
 
-## Withdraw
+For detailed domain pack, see:
+- `doc/spec/app.md`
+- `doc/spec/apis.md`
+- `doc/spec/rules.md`
+- `doc/spec/blocks.md`
+
+## Withdraw Contract
 
 Inputs:
 - `accountId: string`
@@ -14,19 +20,16 @@ Output:
 - `balance: decimal`
 
 Allowed capabilities:
-- `ledger`
-  - `getBalance`
-  - `setBalance`
-- `idempotency`
-  - `get`
-  - `put`
+- `ledger.getBalance`
+- `ledger.setBalance`
+- `idempotency.get`
+- `idempotency.put`
 
 Idempotency:
 - key: `txId`
-- store capability: `idempotency` (`get`/`put`)
 
 Invariant:
 - `non_negative(balance)`
 
-IR source of truth in `bear-cli`:
-- `spec/fixtures/withdraw.bear.yaml`
+Local IR source of truth in this repo:
+- `spec/withdraw.bear.yaml`

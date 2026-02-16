@@ -1,38 +1,50 @@
 # bear-account-demo
 
-Spec-first demo repository for BEAR usage.
+Standalone M1 demo repository for BEAR agent workflow proof.
 
-This repo is structured to show BEAR in an agentic workflow using a stable baseline and isolated scenario branches.
+## M1 Goal
 
-## Main Branch Policy
+Given only this repo and a feature request, an agent can:
+- complete one non-boundary feature
+- complete one boundary-expanding feature with IR-first workflow
+- use one canonical gate command as done/not-done signal
 
-`main` is the canonical spec-driven baseline:
-- contains demo spec and minimal runnable scaffold
-- contains scenario index and runbook
-- does not contain intentionally naive/failing scenario variants
-- does not contain intentional drift artifacts
+## Tooling Assumption
 
-## Quickstart (from `bear-cli` repo)
+Expected local BEAR CLI location:
+- `.bear/tools/bear-cli/bin/bear` (or `.bat` on Windows)
 
-1. Compile generated artifacts into demo:
+`bin/bear.*` also supports `bear` on PATH as a development fallback.
 
-```powershell
-.\gradlew.bat --no-daemon :app:run --args="compile spec/fixtures/withdraw.bear.yaml --project ../bear-account-demo"
-```
+## Canonical Commands
 
-2. Run BEAR gate against demo:
+Compile baseline generated artifacts:
 
 ```powershell
-.\gradlew.bat --no-daemon :app:run --args="check spec/fixtures/withdraw.bear.yaml --project ../bear-account-demo"
+.\bin\bear.ps1 compile spec/withdraw.bear.yaml --project .
 ```
 
-## Scenario Branches
+Run the canonical gate:
 
-See `doc/SCENARIOS.md` for branch matrix and expected outputs.
+```powershell
+.\bin\bear-all.ps1
+```
 
-Current scenario branches:
+Bash:
+
+```sh
+./bin/bear.sh compile spec/withdraw.bear.yaml --project .
+./bin/bear-all.sh
+```
+
+## Canonical M1 Scenario Branches
+
+- `scenario/greenfield-build`
+- `scenario/feature-extension`
+
+Legacy/non-canonical branches:
 - `scenario/naive-fail-withdraw`
 - `scenario/corrected-pass-withdraw`
 
-Reserved next branch:
-- `scenario/boundary-expansion-visible`
+Evaluator runbooks and expected outcomes are intentionally not stored in this repo.
+They live in `bear-cli/doc/m1-eval/`.

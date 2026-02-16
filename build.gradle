@@ -29,3 +29,51 @@ sourceSets {
         }
     }
 }
+
+def forbiddenReachTokens = [
+    'import java.net.',
+    'import java.net.http.',
+    'import java.nio.file.',
+    'import java.sql.',
+    'import okhttp3.',
+    'import org.apache.http.',
+    'import software.amazon.awssdk.',
+    'import com.mongodb.',
+    'import redis.clients.'
+]
+
+tasks.register('verifyNoUndeclaredReach') {
+    group = 'verification'
+    description = 'Fails on obvious undeclared external reach usage in user-owned impl sources.'
+
+    doLast {
+        File sourceRoot = file('src/main/java')
+        if (!sourceRoot.exists()) {
+            return
+        }
+
+        List<String> violations = []
+        fileTree(sourceRoot) {
+            include '**/*.java'
+        }.each { File javaFile ->
+            String content = javaFile.getText('UTF-8')
+            forbiddenReachTokens.each { String token ->
+                if (content.contains(token)) {
+                    violations.add("${javaFile.path}: forbidden token '${token}'")
+                }
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException('verifyNoUndeclaredReach failed:\n' + violations.join('\n'))
+        }
+    }
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('verifyNoUndeclaredReach')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyNoUndeclaredReach')
+}

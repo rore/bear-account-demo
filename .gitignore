@@ -1,8 +1,11 @@
-﻿.gradle/
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 *.class
 out/
+bin/main/
+bin/test/
+.bear/tools/
 
 # IDE
 .idea/
