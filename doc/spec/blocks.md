@@ -15,6 +15,3 @@ Current declared capabilities:
 - `ledger.setBalance`
 - `idempotency.get`
 - `idempotency.put`
-
-Boundary-expansion scenario:
-- add `fraudCheck.evaluate`
