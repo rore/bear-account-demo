@@ -7,46 +7,61 @@ M1 sync model:
 - This file is committed directly in demo for isolated sessions.
 - Sync from source-of-truth is manual in M1.
 
+## Read In This Order
+
+1. `doc/BEAR_PRIMER.md`
+2. `doc/spec/*`
+3. the feature request
+
 ## Mandatory BEAR Loop
 
-1. Read request in domain terms.
-2. Identify affected block and IR file.
+1. Read the feature request in domain terms.
+2. Discover existing BEAR structure:
+- inspect `spec/*.bear.yaml`
+- inspect generated package namespaces and existing `*Impl.java` files
 3. Decide if boundary/contract/effect changes are required.
-4. If yes, edit IR first.
-5. Edit implementation/tests in allowed paths.
-6. Run canonical gate command.
-7. Report: IR changes, boundary signal, code changes, tests.
+4. If required, update IR before implementation edits.
+5. Decide create-vs-update block:
+- update an existing block when feature fits same contract responsibility and boundary
+- create a new block when feature introduces a new responsibility/contract boundary
+6. If no IR exists yet, create the first `spec/*.bear.yaml` before expecting gate success.
+7. Run canonical gate command.
+8. Fix failures by category (schema/validation, drift, boundary signal, tests).
+9. Report exactly what changed:
+- IR and boundary deltas
+- implementation files
+- tests and gate result
 
-## IR-First Rules
+## IR-First Decision Rules
 
-IR must change first when request introduces or changes:
-- external reach/call
-- capability port/op
-- contract input/output shape
-- persistence interaction
-- invariant additions or relaxations
+Update IR first if any of these are introduced or changed:
+- new external call/reach
+- new capability port or operation
+- contract input/output shape changes
+- persistence interaction changes
+- new invariant or invariant relaxation/removal
 
-If unsure, inspect IR before coding and confirm capability already exists.
+If unsure:
+- inspect IR and confirm capability already exists before writing impl code.
 
-## Where You Can Edit
+## Edit Boundaries
 
 Do not edit generated files:
 - `build/generated/bear/**`
 
-Editable paths:
-- `src/main/java/**/<BlockName>Impl.java`
-- `src/test/java/**`
-- `spec/*.bear.yaml`
-- `doc/**`
-- `bin/**`
+Editable locations:
+- implementation: `src/main/java/**/<BlockName>Impl.java`
+- tests: `src/test/java/**`
+- IR/spec docs/scripts in repo-owned paths
 
-## Canonical Gate
+## Canonical Command
 
+Use one command as the done gate:
 - PowerShell: `./bin/bear-all.ps1`
 - Bash: `./bin/bear-all.sh`
 
-Exit handling:
-- `0` pass
-- `2` IR/schema/semantic error
-- `3` drift (including stale baseline)
-- `4` test or verification failure
+Interpretation:
+- `0` => done
+- `3` => drift (regen/update flow required)
+- `4` => test/verification failure
+- `2` => IR/schema/semantic issue

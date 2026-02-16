@@ -16,6 +16,24 @@ Expected local BEAR CLI location:
 
 `bin/bear.*` also supports `bear` on PATH as a development fallback.
 
+## First-Time Bootstrap
+
+1. Read:
+- `doc/BEAR_PRIMER.md`
+- `doc/spec/*`
+2. If no IR exists in `spec/*.bear.yaml`, create the first block IR.
+3. Compile that IR:
+
+```powershell
+.\bin\bear.ps1 compile <your-ir-file> --project .
+```
+
+4. Run the canonical gate:
+
+```powershell
+.\bin\bear-all.ps1
+```
+
 ## Canonical Commands
 
 Compile baseline generated artifacts:
