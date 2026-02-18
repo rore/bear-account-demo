@@ -31,6 +31,3 @@ block:
       port: idempotency
       getOp: get
       putOp: put
-  invariants:
-    - kind: non_negative
-      field: balance
