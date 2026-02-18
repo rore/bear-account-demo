@@ -29,6 +29,18 @@ M1 sync model:
 - `./bin/bear-all.ps1` or `./bin/bear-all.sh`
 8. Resolve failures by category until gate exits `0`.
 
+## Pre-PR Governance Check
+
+Before opening a PR, run:
+- `./bin/pr-gate.ps1 origin/main`
+- or `./bin/pr-gate.sh origin/main`
+
+Behavior:
+- compares each IR against merge-base with the base ref
+- exits `0` when no boundary-expanding deltas are present
+- exits `5` when boundary-expanding deltas are present
+- propagates validation/IO/usage failures as-is
+
 ## Failure Triage
 
 1. `exit 2` (validation/schema/semantic):
@@ -49,6 +61,10 @@ M1 sync model:
 4. `exit 4` (tests/verification):
 - fix impl/tests/verification issue
 - rerun gate
+
+5. `exit 5` from `pr-gate` (boundary expansion in PR governance):
+- review `pr-delta: BOUNDARY_EXPANDING: ...` lines
+- confirm intended boundary change and complete required review flow
 
 ## M1 Constraints
 

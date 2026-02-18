@@ -52,17 +52,26 @@ Run the canonical gate:
 .\bin\bear-all.ps1
 ```
 
+Run PR governance gate (pre-PR check against base branch):
+
+```powershell
+.\bin\pr-gate.ps1 origin/main
+```
+
 Bash:
 
 ```sh
 ./bin/bear.sh compile spec/withdraw.bear.yaml --project .
 ./bin/bear-all.sh
+./bin/pr-gate.sh origin/main
 ```
 
 ## Canonical M1 Scenario Branches
 
 - `scenario/greenfield-build`
 - `scenario/feature-extension`
+- `scenario/pr-non-boundary`
+- `scenario/pr-boundary-expand`
 
 Legacy/non-canonical branches:
 - `scenario/naive-fail-withdraw`
@@ -70,5 +79,3 @@ Legacy/non-canonical branches:
 
 Evaluator runbooks and expected outcomes are intentionally not stored in this repo.
 They live in `bear-cli/doc/m1-eval/`.
-
-
