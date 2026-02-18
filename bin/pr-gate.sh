@@ -20,6 +20,25 @@ if [[ ! -d "${REPO_ROOT}" ]]; then
   fi
 fi
 SPEC_DIR="${REPO_ROOT}/spec"
+VENDORED_BEAR="${REPO_ROOT}/tools/bear-cli/bin/bear"
+LOCAL_BEAR="${REPO_ROOT}/.bear/tools/bear-cli/bin/bear"
+
+run_bear() {
+  if [[ -f "${VENDORED_BEAR}" ]]; then
+    bash "${VENDORED_BEAR}" "$@"
+    return $?
+  fi
+  if [[ -f "${LOCAL_BEAR}" ]]; then
+    bash "${LOCAL_BEAR}" "$@"
+    return $?
+  fi
+  if command -v bear >/dev/null 2>&1; then
+    bear "$@"
+    return $?
+  fi
+  echo "pr-gate: missing BEAR CLI. Expected tools/bear-cli/bin/bear, .bear/tools/bear-cli/bin/bear, or bear on PATH." >&2
+  return 127
+}
 
 mapfile -t IR_FILES < <(find "${SPEC_DIR}" -maxdepth 1 -type f -name '*.bear.yaml' 2>/dev/null | sort)
 
@@ -32,6 +51,5 @@ fi
 for ir in "${IR_FILES[@]}"; do
   rel="spec/$(basename "${ir}")"
   echo "pr-gate: checking ${rel} against ${BASE_REF}"
-  bash "${SCRIPT_DIR}/bear.sh" pr-check "${rel}" --project "${REPO_ROOT}" --base "${BASE_REF}"
+  run_bear pr-check "${rel}" --project "${REPO_ROOT}" --base "${BASE_REF}"
 done
-
