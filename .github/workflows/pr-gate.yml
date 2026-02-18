@@ -17,31 +17,6 @@ jobs:
           git fetch --no-tags --prune --depth=1 origin \
             +refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
-      - name: Checkout bear-cli
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/bear-cli
-          path: bear-cli
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Build and install bear-cli
-        working-directory: bear-cli
-        run: |
-          ./gradlew :app:installDist
-          INSTALL_DIR=$(find /tmp -type d -path '*/bear-cli-build/*/app/install/bear' | sort | tail -n 1)
-          if [[ -z "${INSTALL_DIR}" ]]; then
-            echo "unable to locate installDist output" >&2
-            exit 1
-          fi
-          mkdir -p "${GITHUB_WORKSPACE}/.bear/tools"
-          rm -rf "${GITHUB_WORKSPACE}/.bear/tools/bear-cli"
-          cp -R "${INSTALL_DIR}" "${GITHUB_WORKSPACE}/.bear/tools/bear-cli"
-
       - name: Run PR gate
         run: |
           set +e
@@ -50,4 +25,3 @@ jobs:
           set -e
           grep -E '^(pr-delta:|pr-check:)' pr-gate.log >> "$GITHUB_STEP_SUMMARY" || true
           exit $code
-

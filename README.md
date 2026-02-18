@@ -15,7 +15,10 @@ Given only this repo and a feature request, an agent can:
 
 ## Tooling Assumption
 
-Expected local BEAR CLI location:
+Committed BEAR CLI bundle (default):
+- `tools/bear-cli/bin/bear` (or `.bat` on Windows)
+
+Optional local override:
 - `.bear/tools/bear-cli/bin/bear` (or `.bat` on Windows)
 
 `bin/bear.*` also supports `bear` on PATH as a development fallback.
