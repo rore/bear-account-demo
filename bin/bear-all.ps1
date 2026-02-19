@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $blocksFile = Join-Path $repoRoot 'bear.blocks.yaml'
 $specDir = Join-Path $repoRoot 'spec'
@@ -17,6 +17,12 @@ if (Test-Path $specDir) {
 if ($irFiles.Count -eq 0) {
     [Console]::Error.WriteLine('bear-all: No BEAR block index or IR files found')
     [Console]::Error.WriteLine('bear-all: Create initial IR file(s), create bear.blocks.yaml, compile, then rerun bear-all.')
+    exit 64
+}
+
+if ($irFiles.Count -ge 2) {
+    [Console]::Error.WriteLine('bear-all: Multiple IR files found but bear.blocks.yaml is missing')
+    [Console]::Error.WriteLine('bear-all: Create bear.blocks.yaml and run bear check --all --project ., then rerun bear-all.')
     exit 64
 }
 

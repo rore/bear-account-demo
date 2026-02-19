@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
@@ -29,8 +29,14 @@ if [[ ${#IR_FILES[@]} -eq 0 ]]; then
   exit 64
 fi
 
+if [[ ${#IR_FILES[@]} -ge 2 ]]; then
+  echo "pr-gate: Multiple IR files found but bear.blocks.yaml is missing" >&2
+  echo "pr-gate: Create bear.blocks.yaml and run bear pr-check --all --project . --base <ref>, then rerun pr-gate." >&2
+  exit 64
+fi
+
 for ir in "${IR_FILES[@]}"; do
   rel="spec/$(basename "${ir}")"
   echo "pr-gate: checking ${rel} against ${BASE_REF}"
-  "${SCRIPT_DIR}/bear.sh" pr-check "${rel}" --project "${REPO_ROOT}" --base "${BASE_REF}"
+  "${SCRIPT_DIR}/bear.sh" pr-check "${ir}" --project "${REPO_ROOT}" --base "${BASE_REF}"
 done

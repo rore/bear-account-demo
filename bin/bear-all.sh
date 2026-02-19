@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,6 +16,12 @@ mapfile -t IR_FILES < <(find "${SPEC_DIR}" -maxdepth 1 -type f -name '*.bear.yam
 if [[ ${#IR_FILES[@]} -eq 0 ]]; then
   echo "bear-all: No BEAR block index or IR files found" >&2
   echo "bear-all: Create initial IR file(s), create bear.blocks.yaml, compile, then rerun bear-all." >&2
+  exit 64
+fi
+
+if [[ ${#IR_FILES[@]} -ge 2 ]]; then
+  echo "bear-all: Multiple IR files found but bear.blocks.yaml is missing" >&2
+  echo "bear-all: Create bear.blocks.yaml and run bear check --all --project ., then rerun bear-all." >&2
   exit 64
 fi
 

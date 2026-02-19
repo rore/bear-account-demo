@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$ArgsList
 )
@@ -32,6 +32,12 @@ if (Test-Path $specDir) {
 if ($irFiles.Count -eq 0) {
     [Console]::Error.WriteLine('pr-gate: No BEAR block index or IR files found')
     [Console]::Error.WriteLine('pr-gate: Create initial IR file(s), create bear.blocks.yaml, compile, then rerun pr-gate.')
+    exit 64
+}
+
+if ($irFiles.Count -ge 2) {
+    [Console]::Error.WriteLine('pr-gate: Multiple IR files found but bear.blocks.yaml is missing')
+    [Console]::Error.WriteLine('pr-gate: Create bear.blocks.yaml and run bear pr-check --all --project . --base <ref>, then rerun pr-gate.')
     exit 64
 }
 
