@@ -1,7 +1,7 @@
-# BEAR Primer (M1 Minimal)
+﻿# BEAR Primer (M1 Minimal)
 
 Source-of-truth:
-- `bear-cli/doc/m1-canonical/BEAR_PRIMER.md`
+- `bear-cli/doc/bear-package/BEAR_PRIMER.md`
 
 Purpose:
 - Give a first-time isolated agent enough BEAR context to start correctly.

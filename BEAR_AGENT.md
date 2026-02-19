@@ -1,7 +1,7 @@
 ﻿# BEAR_AGENT.md (Demo Contract, M1)
 
 Source-of-truth:
-- `bear-cli/doc/m1-canonical/BEAR_AGENT.md`
+- `bear-cli/doc/bear-package/BEAR_AGENT.md`
 
 M1 sync model:
 - This file is committed directly in demo for isolated sessions.
@@ -54,3 +54,5 @@ Editable locations:
 Use one command as the done gate:
 - PowerShell: `./bin/bear-all.ps1`
 - Bash: `./bin/bear-all.sh`
+
+

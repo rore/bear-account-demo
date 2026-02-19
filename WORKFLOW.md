@@ -1,7 +1,7 @@
 ﻿# WORKFLOW.md (Demo Runbook)
 
 Source-of-truth:
-- `bear-cli/doc/m1-canonical/WORKFLOW.md`
+- `bear-cli/doc/bear-package/WORKFLOW.md`
 
 ## Read In This Order
 
@@ -33,3 +33,4 @@ Source-of-truth:
 - No generated-file edits.
 - No silent boundary expansion.
 - One command determines done/not-done.
+
