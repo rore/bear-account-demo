@@ -1,7 +1,4 @@
-﻿# BEAR Primer (M1 Minimal)
-
-Source-of-truth:
-- `bear-cli/doc/bear-package/BEAR_PRIMER.md`
+﻿# BEAR Primer
 
 Purpose:
 - Give a first-time isolated agent enough BEAR context to start correctly.
@@ -43,17 +40,4 @@ Do not edit:
 Edit:
 - user implementation under `src/main/java/**/<BlockName>Impl.java`
 - tests under `src/test/java/**`
-- IR/spec/workflow docs/scripts in repo-owned paths
-
-## Tiny IR Example Fragment
-
-```yaml
-version: v0
-block:
-  name: Withdraw
-  kind: logic
-  contract:
-    inputs:
-      - name: accountId
-        type: string
-```
+- IR/docs/workflow/scripts in repo-owned paths

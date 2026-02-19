@@ -1,11 +1,4 @@
-﻿# BEAR_AGENT.md (Demo Contract, M1)
-
-Source-of-truth:
-- `bear-cli/doc/bear-package/BEAR_AGENT.md`
-
-M1 sync model:
-- This file is committed directly in demo for isolated sessions.
-- Sync from source-of-truth is manual in M1.
+﻿# BEAR_AGENT.md
 
 Session profile:
 - BEAR_AGENT (declared in AGENTS.md for auto-loaded sessions).
@@ -13,7 +6,8 @@ Session profile:
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
-2. the feature request
+2. `WORKFLOW.md`
+3. the feature request
 
 ## Session Baseline Check
 
@@ -54,5 +48,3 @@ Editable locations:
 Use one command as the done gate:
 - PowerShell: `./bin/bear-all.ps1`
 - Bash: `./bin/bear-all.sh`
-
-
