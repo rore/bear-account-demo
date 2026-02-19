@@ -1,0 +1,8 @@
+version: v0
+blocks:
+  - name: account-service
+    ir: spec/account-service.bear.yaml
+    projectRoot: .
+  - name: scheduled-transfer-worker
+    ir: spec/scheduled-transfer-worker.bear.yaml
+    projectRoot: .

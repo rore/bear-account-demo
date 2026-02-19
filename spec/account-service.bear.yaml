@@ -1,0 +1,48 @@
+version: v0
+block:
+  name: AccountService
+  kind: logic
+  contract:
+    inputs:
+      - name: requestId
+        type: string
+      - name: operation
+        type: enum
+      - name: accountId
+        type: string
+      - name: destinationAccountId
+        type: string
+      - name: amount
+        type: decimal
+      - name: scheduleDate
+        type: string
+    outputs:
+      - name: accepted
+        type: bool
+      - name: message
+        type: string
+      - name: balance
+        type: decimal
+      - name: scheduleId
+        type: string
+  effects:
+    allow:
+      - port: accountStore
+        ops: [getBalance, putBalance]
+      - port: scheduleStore
+        ops: [put]
+      - port: workQueue
+        ops: [enqueue]
+      - port: idempotency
+        ops: [get, put]
+      - port: audit
+        ops: [emit]
+  idempotency:
+    key: requestId
+    store:
+      port: idempotency
+      getOp: get
+      putOp: put
+  invariants:
+    - kind: non_negative
+      field: balance

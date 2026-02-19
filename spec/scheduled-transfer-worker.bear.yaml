@@ -1,0 +1,42 @@
+version: v0
+block:
+  name: ScheduledTransferWorker
+  kind: logic
+  contract:
+    inputs:
+      - name: workerRequestId
+        type: string
+      - name: scheduleId
+        type: string
+    outputs:
+      - name: executed
+        type: bool
+      - name: failureReason
+        type: string
+      - name: sourceBalance
+        type: decimal
+      - name: targetBalance
+        type: decimal
+  effects:
+    allow:
+      - port: scheduleStore
+        ops: [get, markExecuted, markFailed]
+      - port: accountStore
+        ops: [getBalance, putBalance]
+      - port: dailyLimitStore
+        ops: [getUsed, putUsed]
+      - port: idempotency
+        ops: [get, put]
+      - port: audit
+        ops: [emit]
+  idempotency:
+    key: workerRequestId
+    store:
+      port: idempotency
+      getOp: get
+      putOp: put
+  invariants:
+    - kind: non_negative
+      field: sourceBalance
+    - kind: non_negative
+      field: targetBalance
