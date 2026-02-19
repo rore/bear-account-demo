@@ -6,17 +6,15 @@ Source-of-truth:
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
-2. `doc/spec/*`
-3. request prompt in `doc/SCENARIOS.md`
+2. request prompt in `doc/SCENARIOS.md`
 
 ## Standard Flow
 
 1. Read request.
 2. Discover BEAR structure in repo (IR/index may be missing in greenfield).
-3. Apply IR-first for any boundary/contract/effect change.
-4. Decide create-vs-update for blocks.
-5. Implement in user-owned sources only.
-6. Run canonical gate (`bin/bear-all.*`) until exit `0`.
+3. Apply IR-first for boundary/contract/effect changes.
+4. Implement in user-owned sources only.
+5. Run canonical gate (`bin/bear-all.*`) until exit `0`.
 
 ## Canonical Gate
 
@@ -32,6 +30,6 @@ Source-of-truth:
 
 ## Constraints
 
-- No generated file edits.
+- No generated-file edits.
 - No silent boundary expansion.
 - One command determines done/not-done.
