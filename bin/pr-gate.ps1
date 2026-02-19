@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$ArgsList
 )
@@ -16,24 +16,22 @@ if (-not $baseRef.StartsWith('origin/')) {
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
-if (-not (Test-Path $repoRoot)) {
-    $resolved = git -C $scriptDir rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($resolved)) {
-        [Console]::Error.WriteLine('pr-gate: unable to resolve repo root')
-        exit 74
-    }
-    $repoRoot = $resolved.Trim()
+$blocksFile = Join-Path $repoRoot 'bear.blocks.yaml'
+$bearWrapper = Join-Path $scriptDir 'bear.ps1'
+
+if (Test-Path $blocksFile) {
+    & $bearWrapper pr-check --all --project $repoRoot --base $baseRef
+    exit $LASTEXITCODE
 }
 
 $specDir = Join-Path $repoRoot 'spec'
-$bearWrapper = Join-Path $scriptDir 'bear.ps1'
 $irFiles = @()
 if (Test-Path $specDir) {
     $irFiles = @(Get-ChildItem -Path $specDir -Filter '*.bear.yaml' -File | Sort-Object Name)
 }
 if ($irFiles.Count -eq 0) {
-    [Console]::Error.WriteLine('pr-gate: No IR files found under spec/*.bear.yaml')
-    [Console]::Error.WriteLine('pr-gate: Create initial block IR, run compile, then rerun pr-gate.')
+    [Console]::Error.WriteLine('pr-gate: No BEAR block index or IR files found')
+    [Console]::Error.WriteLine('pr-gate: Create initial IR file(s), create bear.blocks.yaml, compile, then rerun pr-gate.')
     exit 64
 }
 

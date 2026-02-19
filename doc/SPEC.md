@@ -1,35 +1,9 @@
-# Account Demo Spec (v0 / M1)
+﻿# Account Demo Spec
 
-This demo centers on one behavior: `Withdraw`.
+This demo intentionally starts without BEAR IR files.
 
-For detailed domain pack, see:
-- `doc/spec/app.md`
-- `doc/spec/apis.md`
-- `doc/spec/rules.md`
-- `doc/spec/blocks.md`
+The agent is expected to derive BEAR block decomposition from domain requirements and create:
+- `spec/*.bear.yaml`
+- `bear.blocks.yaml`
 
-## Withdraw Contract
-
-Inputs:
-- `accountId: string`
-- `amount: decimal`
-- `currency: string`
-- `txId: string`
-
-Output:
-- `balance: decimal`
-
-Allowed capabilities:
-- `ledger.getBalance`
-- `ledger.setBalance`
-- `idempotency.get`
-- `idempotency.put`
-
-Idempotency:
-- key: `txId`
-
-Invariant:
-- `non_negative(balance)`
-
-Local IR source of truth in this repo:
-- `spec/withdraw.bear.yaml`
+Domain references are in `doc/spec/*`.

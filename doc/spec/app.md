@@ -1,15 +1,15 @@
-# app.md
+﻿# app.md
 
 Source-of-truth:
 - `bear-account-demo/doc/spec/app.md`
 
 Domain:
-- minimal banking application
-- current focus is account withdrawal behavior
+- account service
+- operations: deposit, withdraw, transfer
+- extension target: scheduled transfers
 
-Entities:
-- account
-- balance
-- transaction id (`txId`)
-- ledger capability
-- idempotency capability
+Quality constraints:
+- non-negative balances
+- idempotent request handling
+- append-only audit logging
+- event emission per operation

@@ -1,7 +1,13 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$blocksFile = Join-Path $repoRoot 'bear.blocks.yaml'
 $specDir = Join-Path $repoRoot 'spec'
 $bearWrapper = Join-Path $PSScriptRoot 'bear.ps1'
+
+if (Test-Path $blocksFile) {
+    & $bearWrapper check --all --project $repoRoot
+    exit $LASTEXITCODE
+}
 
 $irFiles = @()
 if (Test-Path $specDir) {
@@ -9,8 +15,8 @@ if (Test-Path $specDir) {
 }
 
 if ($irFiles.Count -eq 0) {
-    [Console]::Error.WriteLine('bear-all: No IR files found under spec/*.bear.yaml')
-    [Console]::Error.WriteLine('bear-all: Create initial block IR, run compile, then rerun bear-all.')
+    [Console]::Error.WriteLine('bear-all: No BEAR block index or IR files found')
+    [Console]::Error.WriteLine('bear-all: Create initial IR file(s), create bear.blocks.yaml, compile, then rerun bear-all.')
     exit 64
 }
 

@@ -1,84 +1,48 @@
-# bear-account-demo
+﻿# bear-account-demo
 
-Standalone M1 demo repository for BEAR agent workflow proof.
+Standalone multi-block BEAR demo for realistic agent workflow validation.
 
-## Agent Bootstrap
+## Goal
 
-Codex sessions auto-load AGENTS.md at repo root. In a real project this file should be a thin bootstrap that points to BEAR_AGENT.md, where BEAR operating rules live.
+Validate the BEAR claim end-to-end:
+- developer gives a normal product request
+- agent creates BEAR decomposition (`spec/*.bear.yaml` + `bear.blocks.yaml`)
+- BEAR deterministically enforces structure with one canonical gate
 
-## M1 Goal
+## Read First
 
-Given only this repo and a feature request, an agent can:
-- complete one non-boundary feature
-- complete one boundary-expanding feature with IR-first workflow
-- use one canonical gate command as done/not-done signal
-
-## Tooling Assumption
-
-Committed BEAR CLI bundle (default):
-- `tools/bear-cli/bin/bear` (or `.bat` on Windows)
-
-Optional local override:
-- `.bear/tools/bear-cli/bin/bear` (or `.bat` on Windows)
-
-`bin/bear.*` also supports `bear` on PATH as a development fallback.
-
-## First-Time Bootstrap
-
-1. Read:
-- `doc/BEAR_PRIMER.md`
-- `doc/spec/*`
-2. If no IR exists in `spec/*.bear.yaml`, create the first block IR.
-3. Compile that IR:
-
-```powershell
-.\bin\bear.ps1 compile <your-ir-file> --project .
-```
-
-4. Run the canonical gate:
-
-```powershell
-.\bin\bear-all.ps1
-```
+1. `doc/BEAR_PRIMER.md`
+2. `doc/spec/*`
+3. `WORKFLOW.md`
+4. `doc/SCENARIOS.md`
 
 ## Canonical Commands
 
-Compile baseline generated artifacts:
-
-```powershell
-.\bin\bear.ps1 compile spec/withdraw.bear.yaml --project .
-```
-
-Run the canonical gate:
+Windows:
 
 ```powershell
 .\bin\bear-all.ps1
-```
-
-Run PR governance gate (pre-PR check against base branch):
-
-```powershell
-.\bin\pr-gate.ps1 origin/main
+.\bin\pr-gate.ps1 <base-ref>
 ```
 
 Bash:
 
 ```sh
-./bin/bear.sh compile spec/withdraw.bear.yaml --project .
 ./bin/bear-all.sh
-./bin/pr-gate.sh origin/main
+./bin/pr-gate.sh <base-ref>
 ```
 
-## Canonical M1 Scenario Branches
+Gate behavior:
+- if `bear.blocks.yaml` exists -> use repo-level `--all`
+- otherwise -> fallback to deterministic `spec/*.bear.yaml` loop
 
-- `scenario/greenfield-build`
-- `scenario/feature-extension`
-- `scenario/pr-non-boundary`
-- `scenario/pr-boundary-expand`
+## Scenario Branch
 
-Legacy/non-canonical branches:
-- `scenario/naive-fail-withdraw`
-- `scenario/corrected-pass-withdraw`
+Start here:
+- `scenario/1-greenfield-multiblock-start`
 
-Evaluator runbooks and expected outcomes are intentionally not stored in this repo.
-They live in `bear-cli/doc/m1-eval/`.
+After you complete greenfield and reach pass, create:
+- `scenario/1-greenfield-pass`
+
+Then run extension scenario from:
+- `scenario/1-greenfield-pass`

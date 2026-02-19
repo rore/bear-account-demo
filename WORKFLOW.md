@@ -1,81 +1,37 @@
-# WORKFLOW.md (Demo Runbook, M1)
+﻿# WORKFLOW.md (Demo Runbook)
 
 Source-of-truth:
 - `bear-cli/doc/m1-canonical/WORKFLOW.md`
-
-M1 sync model:
-- Committed directly for isolated sessions.
-- Manual sync from source-of-truth.
 
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
 2. `doc/spec/*`
-3. the feature request
+3. request prompt in `doc/SCENARIOS.md`
 
 ## Standard Flow
 
 1. Read request.
-2. Discover current BEAR structure from repo state:
-- inspect `spec/*.bear.yaml` if present
-- inspect generated package namespaces and existing `*Impl.java` files
-3. Apply IR-first rule if boundary/contract/effect changes are needed.
-4. Decide create-vs-update for blocks:
-- update existing block when feature fits current contract/capability boundary
-- create a new block when feature introduces a distinct contract/responsibility boundary
-5. If no IR exists, create initial `spec/*.bear.yaml` first.
-6. Implement in `*Impl.java` and tests only.
-7. Run canonical gate:
-- `./bin/bear-all.ps1` or `./bin/bear-all.sh`
-8. Resolve failures by category until gate exits `0`.
+2. Discover BEAR structure in repo (IR/index may be missing in greenfield).
+3. Apply IR-first for any boundary/contract/effect change.
+4. Decide create-vs-update for blocks.
+5. Implement in user-owned sources only.
+6. Run canonical gate (`bin/bear-all.*`) until exit `0`.
 
-## Pre-PR Governance Check
+## Canonical Gate
 
-Before opening a PR, run:
-- `./bin/pr-gate.ps1 origin/main`
-- or `./bin/pr-gate.sh origin/main`
+`bin/bear-all.*` behavior:
+- if `bear.blocks.yaml` exists: `bear check --all --project <repoRoot>`
+- else: loop `bear check <ir-file> --project <repoRoot>` over `spec/*.bear.yaml`
 
-Behavior:
-- compares each IR against merge-base with the base ref
-- exits `0` when no boundary-expanding deltas are present
-- exits `5` when boundary-expanding deltas are present
-- propagates validation/IO/usage failures as-is
+## PR Governance
 
-## Failure Triage
+`bin/pr-gate.* <base-ref>` behavior:
+- if `bear.blocks.yaml` exists: `bear pr-check --all --project <repoRoot> --base <base-ref>`
+- else: loop `bear pr-check <ir-file> --project <repoRoot> --base <base-ref>` over `spec/*.bear.yaml`
 
-1. `exit 2` (validation/schema/semantic):
-- fix IR shape/references
-- rerun gate
+## Constraints
 
-2. `exit 3` (drift):
-- run compile for the IR file that triggered drift:
-  - `./bin/bear.* compile <ir-file> --project .`
-- ensure generated tree matches current IR
-- rerun gate
-
-3. boundary expansion lines present:
-- confirm this is intended
-- ensure IR change is explicit and reviewed
-- continue with compile + implementation + gate
-
-4. `exit 4` (tests/verification):
-- fix impl/tests/verification issue
-- rerun gate
-
-5. `exit 5` from `pr-gate` (boundary expansion in PR governance):
-- review `pr-delta: BOUNDARY_EXPANDING: ...` lines
-- confirm intended boundary change and complete required review flow
-
-## M1 Constraints
-
-- No generated-file edits.
+- No generated file edits.
 - No silent boundary expansion.
 - One command determines done/not-done.
-
-## M1 Manual Sync Checklist
-
-When source texts change in `bear-cli/doc/m1-canonical/`:
-1. Update demo copies (`doc/BEAR_PRIMER.md`, `BEAR_AGENT.md`, `WORKFLOW.md`).
-2. Keep `Source-of-truth` lines accurate.
-3. Keep domain docs (`doc/spec/*`) owned in demo and synced with current behavior.
-4. Confirm canonical gate still matches docs.
