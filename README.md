@@ -1,19 +1,12 @@
 ﻿# bear-account-demo
 
-Standalone multi-block BEAR demo for realistic agent workflow validation.
+Standalone project used to validate BEAR agent workflow in realistic conditions.
 
-## Goal
+## Included BEAR Assets
 
-Validate the BEAR claim end-to-end:
-- developer gives a normal product request
-- agent creates required BEAR governance artifacts
-- BEAR enforces deterministically with one canonical gate
-
-## Read First
-
-1. `doc/BEAR_PRIMER.md`
-2. `WORKFLOW.md`
-3. `doc/SCENARIOS.md`
+- BEAR CLI wrapper scripts (`bin/*`)
+- BEAR agent bootstrap (`AGENTS.md`, `BEAR_AGENT.md`)
+- BEAR primer (`doc/BEAR_PRIMER.md`)
 
 ## Canonical Commands
 
@@ -34,11 +27,3 @@ Bash:
 Gate behavior:
 - if `bear.blocks.yaml` exists -> use repo-level `--all`
 - otherwise -> fallback to deterministic `spec/*.bear.yaml` loop
-
-## Scenario Branch
-
-Start here:
-- `scenario/1-greenfield-multiblock-start`
-
-After greenfield passes, create:
-- `scenario/1-greenfield-pass`

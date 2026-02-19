@@ -6,12 +6,12 @@ Source-of-truth:
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
-2. request prompt in `doc/SCENARIOS.md`
+2. the feature request
 
 ## Standard Flow
 
 1. Read request.
-2. Discover BEAR structure in repo (IR/index may be missing in greenfield).
+2. Discover BEAR structure in repo (IR/index may be missing).
 3. Apply IR-first for boundary/contract/effect changes.
 4. Implement in user-owned sources only.
 5. Run canonical gate (`bin/bear-all.*`) until exit `0`.
