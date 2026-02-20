@@ -5,7 +5,9 @@ build/
 out/
 bin/main/
 bin/test/
-.bear/tools/
+.bear/tools/*
+!.bear/tools/bear-cli/
+!.bear/tools/bear-cli/**
 
 # IDE
 .idea/
