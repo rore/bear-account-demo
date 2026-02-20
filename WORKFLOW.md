@@ -1,81 +1,148 @@
-# WORKFLOW.md (Demo Runbook, M1)
+# WORKFLOW.md
 
-Source-of-truth:
-- `bear-cli/doc/m1-canonical/WORKFLOW.md`
-
-M1 sync model:
-- Committed directly for isolated sessions.
-- Manual sync from source-of-truth.
+Purpose:
+- Deterministic operating loop for BEAR in a generic backend project.
 
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
-2. `doc/spec/*`
-3. the feature request
+2. `doc/IR_QUICKREF.md`
+3. `doc/IR_EXAMPLES.md`
+4. `doc/BLOCK_INDEX_QUICKREF.md`
+5. the feature request
 
-## Standard Flow
+## Canonical Flows
 
-1. Read request.
-2. Discover current BEAR structure from repo state:
-- inspect `spec/*.bear.yaml` if present
-- inspect generated package namespaces and existing `*Impl.java` files
-3. Apply IR-first rule if boundary/contract/effect changes are needed.
-4. Decide create-vs-update for blocks:
-- update existing block when feature fits current contract/capability boundary
-- create a new block when feature introduces a distinct contract/responsibility boundary
-5. If no IR exists, create initial `spec/*.bear.yaml` first.
-6. Implement in `*Impl.java` and tests only.
-7. Run canonical gate:
-- `./bin/bear-all.ps1` or `./bin/bear-all.sh`
-8. Resolve failures by category until gate exits `0`.
+### A) Greenfield Flow (no IR yet)
 
-## Pre-PR Governance Check
+1. Read request and identify responsibilities.
+2. Decide block decomposition (single or multi-block).
+3. Create initial `spec/*.bear.yaml`.
+4. If multiple governed blocks exist, create `bear.blocks.yaml`.
+5. For each touched IR file run:
+- `bear validate <ir-file>`
+- `bear compile <ir-file> --project <repoRoot>`
+6. If IR declares `impl.allowedDeps` and project is Java+Gradle:
+- ensure project applies `build/generated/bear/gradle/bear-containment.gradle`
+- run Gradle build/test once to write containment marker
+7. Run gate:
+- single-block mode: `bear check <ir-file> --project <repoRoot>`
+- multi-block mode: `bear check --all --project <repoRoot>`
+8. Implement in `*Impl.java` and tests only.
+9. Re-run check to `0`.
 
-Before opening a PR, run:
-- `./bin/pr-gate.ps1 origin/main`
-- or `./bin/pr-gate.sh origin/main`
+Greenfield hard stop:
+- if no IR exists yet, do not write implementation source code first.
+- IR -> validate -> compile must happen before implementation edits.
+- if generated contracts are missing, compile; do not invent replacement interfaces/classes.
+- if repository paths expected by the prompt are missing, this is still not permission for implementation-first fallback.
 
-Behavior:
-- compares each IR against merge-base with the base ref
-- exits `0` when no boundary-expanding deltas are present
-- exits `5` when boundary-expanding deltas are present
-- propagates validation/IO/usage failures as-is
+### B) Extension Flow (existing BEAR repo)
 
-## Failure Triage
+1. Discover existing IR/index/impl state.
+2. Decide update-existing-block vs add-new-block.
+3. Apply IR changes first when boundaries change.
+4. Compile touched IR files.
+5. If generated artifacts are stale or drifted, run `bear fix` for touched IR (or `fix --all` when indexed).
+6. If touched IR declares `impl.allowedDeps` and project is Java+Gradle:
+- ensure project applies `build/generated/bear/gradle/bear-containment.gradle`
+- run Gradle build/test once to write containment marker
+7. Run check gate (`check` or `check --all`).
+8. Implement and test.
+9. Re-run check gate to `0`.
+10. For PR/base governance run:
+- `bear pr-check <ir-file> --project <repoRoot> --base <ref>`
+- or `bear pr-check --all --project <repoRoot> --base <ref>` when indexed
 
-1. `exit 2` (validation/schema/semantic):
-- fix IR shape/references
-- rerun gate
+## Block Index Gate
 
-2. `exit 3` (drift):
-- run compile for the IR file that triggered drift:
-  - `./bin/bear.* compile <ir-file> --project .`
-- ensure generated tree matches current IR
-- rerun gate
+1. Multi-block state requires `bear.blocks.yaml`.
+2. In multi-block state, use only:
+- `bear check --all --project <repoRoot>`
+- `bear pr-check --all --project <repoRoot> --base <ref>`
+3. Single-block fallback loops are valid only when exactly one IR file exists and no index exists.
+4. Removing `bear.blocks.yaml` to continue via per-IR fallback is invalid.
 
-3. boundary expansion lines present:
-- confirm this is intended
-- ensure IR change is explicit and reviewed
-- continue with compile + implementation + gate
+## Wrapper Preference
 
-4. `exit 4` (tests/verification):
-- fix impl/tests/verification issue
-- rerun gate
+If wrappers are shipped in the project, use them as canonical gates:
+- `.\bin\bear-all.ps1` / `./bin/bear-all.sh`
+- `.\bin\pr-gate.ps1 <base-ref>` / `./bin/pr-gate.sh <base-ref>`
 
-5. `exit 5` from `pr-gate` (boundary expansion in PR governance):
-- review `pr-delta: BOUNDARY_EXPANDING: ...` lines
-- confirm intended boundary change and complete required review flow
+Wrappers should route to `--all` when `bear.blocks.yaml` exists.
 
-## M1 Constraints
+## Failure Triage (Deterministic)
+
+1. `64` usage error:
+- fix args/command invocation
+
+2. `2` validation/schema/semantic failure:
+- fix IR structure/references/enums/duplicates
+
+3. `3` drift failure:
+- prefer `bear fix` (or `fix --all`) to deterministically repair generated artifacts
+- alternatively rerun compile for changed IR
+- rerun check
+
+4. `6` undeclared reach:
+- declare required port/op in IR
+- compile
+- route call through generated port interface
+
+5. `4` project tests failed:
+- fix implementation/tests
+
+6. `5` boundary expansion (`pr-check`):
+- confirm expansion is intentional and reviewable
+
+7. `74` IO/git failure:
+- fix path/ref/permission/repo state
+
+Index troubleshooting:
+- `projectRoot` must be a repo-relative directory path.
+- repo root is valid and represented as `.`.
+- if index fails validation, fix `name`/`ir`/`projectRoot` and rerun `check --all`.
+
+8. `70` internal failure:
+- collect output and report as tool defect
+
+9. `74` containment failure (`CONTAINMENT_NOT_VERIFIED` / `CONTAINMENT_UNSUPPORTED_TARGET`):
+- if missing/stale marker or missing generated containment script/index:
+  - rerun `bear compile`
+  - ensure project applies generated containment entrypoint
+  - run Gradle build/test once to refresh marker
+  - rerun `bear check`
+- if unsupported target:
+  - use Java+Gradle enforcement path for allowed deps
+  - or remove `impl.allowedDeps` and keep governance-only behavior in `pr-check`
+
+Lock and environment troubleshooting:
+- If BEAR compile/check fails with file-lock/permission signatures (for example `.zip.lck`, `Access is denied`, generated-file replacement lock), treat it as tooling/environment IO issue first.
+- Do not change unrelated IR to match stale generated outputs.
+- Do not introduce workaround classes under `com.bear.generated.*`.
+- Remediate by:
+  - rerunning with isolated `GRADLE_USER_HOME`
+  - ensuring no concurrent gate/test process holds locks
+  - rerunning compile/check after lock release
+
+## Constraints
 
 - No generated-file edits.
 - No silent boundary expansion.
-- One command determines done/not-done.
+- One deterministic gate determines done/not-done.
+- No implementation-first bypass in greenfield mode.
+- Prefer minimal sufficient design; avoid unnecessary architecture expansion.
+- If new production architecture is introduced, include a short necessity rationale mapped to requirements and BEAR boundaries.
+- For extension prompts that keep existing behavior unchanged, prefer extending existing blocks; add new blocks only for distinct lifecycle/effect boundaries.
 
-## M1 Manual Sync Checklist
+## Invalid Patterns (Fail the Run)
 
-When source texts change in `bear-cli/doc/m1-canonical/`:
-1. Update demo copies (`doc/BEAR_PRIMER.md`, `BEAR_AGENT.md`, `WORKFLOW.md`).
-2. Keep `Source-of-truth` lines accurate.
-3. Keep domain docs (`doc/spec/*`) owned in demo and synced with current behavior.
-4. Confirm canonical gate still matches docs.
+1. Writing feature classes before creating any `spec/*.bear.yaml`.
+2. Implementing custom ports/contracts to replace missing generated BEAR interfaces.
+3. Deleting or skipping `bear.blocks.yaml` in multi-block state to force per-IR fallback.
+
+## Completion Report Addendum
+
+If new production architecture was added, include:
+- `Architecture rationale: <why required, and which boundary/lifecycle requirement it satisfies>`
+

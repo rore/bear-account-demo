@@ -1,84 +1,14 @@
-# bear-account-demo
+# Wallet Transfer Service Demo
 
-Standalone M1 demo repository for BEAR agent workflow proof.
+This repository demonstrates agent-autopilot implementation from a normal product spec.
 
-## Agent Bootstrap
+Developer instruction to agent:
+- Implement the specs.
 
-Codex sessions auto-load AGENTS.md at repo root. In a real project this file should be a thin bootstrap that points to BEAR_AGENT.md, where BEAR operating rules live.
-
-## M1 Goal
-
-Given only this repo and a feature request, an agent can:
-- complete one non-boundary feature
-- complete one boundary-expanding feature with IR-first workflow
-- use one canonical gate command as done/not-done signal
-
-## Tooling Assumption
-
-Committed BEAR CLI bundle (default):
-- `tools/bear-cli/bin/bear` (or `.bat` on Windows)
-
-Optional local override:
-- `.bear/tools/bear-cli/bin/bear` (or `.bat` on Windows)
-
-`bin/bear.*` also supports `bear` on PATH as a development fallback.
-
-## First-Time Bootstrap
-
-1. Read:
-- `doc/BEAR_PRIMER.md`
-- `doc/spec/*`
-2. If no IR exists in `spec/*.bear.yaml`, create the first block IR.
-3. Compile that IR:
-
+Verification command:
 ```powershell
-.\bin\bear.ps1 compile <your-ir-file> --project .
+bear check --all --project .
 ```
 
-4. Run the canonical gate:
-
-```powershell
-.\bin\bear-all.ps1
-```
-
-## Canonical Commands
-
-Compile baseline generated artifacts:
-
-```powershell
-.\bin\bear.ps1 compile spec/withdraw.bear.yaml --project .
-```
-
-Run the canonical gate:
-
-```powershell
-.\bin\bear-all.ps1
-```
-
-Run PR governance gate (pre-PR check against base branch):
-
-```powershell
-.\bin\pr-gate.ps1 origin/main
-```
-
-Bash:
-
-```sh
-./bin/bear.sh compile spec/withdraw.bear.yaml --project .
-./bin/bear-all.sh
-./bin/pr-gate.sh origin/main
-```
-
-## Canonical M1 Scenario Branches
-
-- `scenario/greenfield-build`
-- `scenario/feature-extension`
-- `scenario/pr-non-boundary`
-- `scenario/pr-boundary-expand`
-
-Legacy/non-canonical branches:
-- `scenario/naive-fail-withdraw`
-- `scenario/corrected-pass-withdraw`
-
-Evaluator runbooks and expected outcomes are intentionally not stored in this repo.
-They live in `bear-cli/doc/m1-eval/`.
+Product specification:
+- `doc/SPEC.md`

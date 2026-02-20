@@ -1,80 +1,129 @@
-# BEAR_AGENT.md (Demo Contract, M1)
+# BEAR_AGENT.md
 
-Source-of-truth:
-- `bear-cli/doc/m1-canonical/AGENT.md`
-
-M1 sync model:
-- This file is committed directly in demo for isolated sessions.
-- Sync from source-of-truth is manual in M1.
-
-Session profile:
-- BEAR_AGENT (declared in AGENTS.md for auto-loaded sessions).
+Purpose:
+- Canonical BEAR agent operating contract for generic backend projects.
 
 ## Read In This Order
 
 1. `doc/BEAR_PRIMER.md`
-2. `doc/spec/*`
-3. the feature request
+2. `doc/IR_QUICKREF.md`
+3. `doc/IR_EXAMPLES.md`
+4. `doc/BLOCK_INDEX_QUICKREF.md`
+5. `WORKFLOW.md`
+6. the feature request
+
+## Hard Rules
+
+1. Do not reverse engineer BEAR binaries (`jar tf`, `javap`, decompiler tools) to infer IR shape.
+2. Treat `doc/IR_QUICKREF.md` and `doc/IR_EXAMPLES.md` as the IR source of truth.
+3. Do not edit generated files under `build/generated/bear/**`.
+4. Use deterministic BEAR gates; no ad-hoc substitute scripts.
+5. If multiple governed blocks or multiple IR files exist, `bear.blocks.yaml` is mandatory.
+6. Do not remove `bear.blocks.yaml` to bypass `--all` governance.
+7. In greenfield (no `spec/*.bear.yaml`), create IR and run `bear validate` + `bear compile` before writing implementation source files.
+8. Do not invent replacement contracts/ports to bypass BEAR generation; implement against generated BEAR request/result/port interfaces.
+9. Do not create domain logic classes under `com.bear.generated.*` except user-owned `*Impl.java` files created by BEAR compile.
+10. If expected feature files/paths are missing, treat repository state as greenfield or extension based on actual `spec/*.bear.yaml` presence; do not switch to ad-hoc implementation-first mode.
+11. If `bear validate`/`bear compile`/`bear fix`/`bear check` fails, fix BEAR artifacts and rerun; do not bypass by writing non-BEAR replacement architecture.
+12. Prefer the smallest design that satisfies requirements and BEAR constraints.
+13. If you add new production architecture (platform/adapters/executors/etc.), include a brief necessity rationale tied to requirements and boundary ownership.
+14. If BEAR tooling fails with IO/lock/environment defects, stop and report the tooling failure; do not mutate unrelated IR to fit stale generated outputs.
+15. Never add workaround type stubs/classes under `src/main/java/com/bear/generated/**` (for example fake `BigDecimal`); only generated files and user-owned `*Impl.java` are allowed there.
+16. If implementation needs a new library, declare it in `block.impl.allowedDeps` (IR-first); do not silently add impl classpath reach.
+17. For IR with `impl.allowedDeps` on Java+Gradle projects, ensure the project applies generated containment entrypoint and run Gradle once before relying on `bear check`.
 
 ## Session Baseline Check
 
 Before planning or editing:
 1. Run `git status --short`.
-2. If pre-existing changes exist, explicitly report them and confirm whether to treat them as baseline before proceeding.
+2. If pre-existing changes exist, report them and confirm how to treat them.
 
 ## Mandatory BEAR Loop
 
-1. Read the feature request in domain terms.
-2. Discover existing BEAR structure:
+1. Read request in domain terms.
+2. Discover current BEAR structure:
 - inspect `spec/*.bear.yaml`
-- inspect generated package namespaces and existing `*Impl.java` files
-3. Decide if boundary/contract/effect changes are required.
-4. If required, update IR before implementation edits.
-5. Decide create-vs-update block:
-- update an existing block when feature fits same contract responsibility and boundary
-- create a new block when feature introduces a new responsibility/contract boundary
-6. If no IR exists yet, create the first `spec/*.bear.yaml` before expecting gate success.
-7. Run canonical gate command.
-8. Fix failures by category (schema/validation, drift, boundary signal, tests).
-9. Report exactly what changed:
-- IR and boundary deltas
-- implementation files
-- tests and gate result
+- inspect `bear.blocks.yaml` if present
+- inspect generated namespaces and existing `*Impl.java` files
+3. Classify repo BEAR state from disk:
+- `0` IR files: greenfield bootstrap mode
+- `1` IR file: single-block mode
+- `>=2` IR files: multi-block mode, index required
+4. Decide whether boundaries change (contract/effects/idempotency/invariants).
+   - include allowed-deps allowlist changes (`block.impl.allowedDeps`) as boundary-surface changes
+5. Apply IR-first updates before implementation edits when boundaries change.
+6. Decide block strategy:
+- update an existing block when responsibility boundary is unchanged
+- create a new block when responsibility implies a distinct authority boundary
+7. If decomposition yields multiple governed blocks:
+- create/update `bear.blocks.yaml`
+- run `--all` command variants as canonical gates
+  - if index validation fails, fix `name`/`ir`/`projectRoot` entries and rerun `check --all`
+8. Compile/generate after IR changes.
+   - when IR contains `impl.allowedDeps`:
+     - confirm project applies `build/generated/bear/gradle/bear-containment.gradle`
+     - run Gradle build/test once to refresh containment marker
+9. If generated artifacts are stale/drifted, run `bear fix` (or `fix --all` when indexed).
+10. In greenfield bootstrap (`0` IR at start), no feature implementation edits are allowed until at least one `validate` and `compile` succeeds.
+11. Implement only after generated contracts exist.
+12. Implement only in user-owned implementation/tests.
+13. Run canonical gate to `0`.
+14. Report deterministic completion summary.
 
-## IR-First Decision Rules
+## Generic Decomposition Rules
 
-Update IR first if any of these are introduced or changed:
-- new external call/reach
-- new capability port or operation
-- contract input/output shape changes
-- persistence interaction changes
-- new invariant or invariant relaxation/removal
+Split into multiple blocks when responsibilities imply distinct authority boundaries. Common split signals:
+- different external ports/effects
+- different lifecycle/trigger model (sync path vs async/scheduled/worker)
+- different contract ownership/evolution cadence
 
-If unsure:
-- inspect IR and confirm capability already exists before writing impl code.
+Keep a single block when work stays within one existing responsibility boundary.
+When a prompt says to keep existing behavior unchanged, prefer extending existing blocks unless a new lifecycle/effect boundary is explicitly required.
+
+## IR-First Rules
+
+Update IR first if any of these change:
+- new external call/reach capability
+- new effect port or operation
+- contract input/output shape
+- idempotency key/store wiring
+- invariants (add/remove/relax)
 
 Boundary-expanding change expectation:
-- after IR update and before regeneration, `bear-all` can fail with drift/boundary signals on stale generated baseline
-- this is expected; compile/regenerate, implement, then rerun gate to green
+- stale baseline can fail with drift/boundary signals before regeneration
+- compile/regenerate, implement, rerun gate
 
-## Edit Boundaries
+## Editable Boundaries
 
-Do not edit generated files:
+Do not edit:
 - `build/generated/bear/**`
 
-Editable locations:
-- implementation: `src/main/java/**/<BlockName>Impl.java`
-- tests: `src/test/java/**`
-- IR/spec docs/scripts in repo-owned paths
+Edit:
+- `src/main/java/**/<BlockName>Impl.java`
+- `src/test/java/**`
+- repo-owned IR/docs/scripts
 
-## Canonical Command
+## Canonical Gates
 
-Use one command as the done gate:
-- PowerShell: `./bin/bear-all.ps1`
+Use wrappers when provided:
+- PowerShell: `.\bin\bear-all.ps1`
 - Bash: `./bin/bear-all.sh`
+- PR/base gate: `.\bin\pr-gate.ps1 <base-ref>` or `./bin/pr-gate.sh <base-ref>`
 
-Interpretation:
-- `0` => done
-- `3` => drift (regen/update flow required)
-- `4` => test/verification failure
-- `2` => IR/schema/semantic issue
+Direct CLI equivalents:
+- single-block: `bear check <ir-file> --project <repoRoot>`
+- multi-block: `bear check --all --project <repoRoot>`
+- PR/base: `bear pr-check ...`
+- repair generated artifacts: `bear fix <ir-file> --project <repoRoot>` / `bear fix --all --project <repoRoot>`
+- allowed-deps enforcement prereq (Java+Gradle): apply generated containment script and run Gradle once so `build/bear/containment/applied.marker` is fresh
+
+## Completion Report Template
+
+Report completion in this format:
+- `Request summary: <one line>`
+- `Block decision: updated=<...> added=<...>`
+- `IR delta: <files + boundary notes>`
+- `Implementation delta: <files>`
+- `Tests delta: <files>`
+- `Gate result: <command> => <exit>`
+
