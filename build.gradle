@@ -77,3 +77,8 @@ tasks.named('test') {
 tasks.named('check') {
     dependsOn tasks.named('verifyNoUndeclaredReach')
 }
+def bearContainmentEntrypoint = file("$rootDir/build/generated/bear/gradle/bear-containment.gradle")
+if (bearContainmentEntrypoint.exists()) {
+    apply from: bearContainmentEntrypoint
+}
+
