@@ -17,3 +17,5 @@ bin/test/
 # OS
 .DS_Store
 Thumbs.db
+.bear-gradle-user-home/
+
