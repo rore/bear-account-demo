@@ -1,4 +1,4 @@
-# Wallet Transfer Service Demo
+# Wallet Service Demo
 
 This repository demonstrates agent-autopilot implementation from a normal product spec.
 
