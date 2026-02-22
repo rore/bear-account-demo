@@ -11,6 +11,9 @@ Purpose:
 4. `.bear/agent/doc/BLOCK_INDEX_QUICKREF.md`
 5. the feature request
 
+Reference boundary:
+- use only `.bear/agent/**` guidance plus project-local BEAR artifacts (`spec/*.bear.yaml`, `bear.blocks.yaml`, `build/generated/bear/**` when present).
+
 ## Canonical Flows
 
 ## Decomposition Protocol (Deterministic)
@@ -93,6 +96,23 @@ Default to direct CLI commands.
 If wrappers are shipped and explicitly documented by the project, use them.
 Do not assume `bin/bear-all.*` or `bin/pr-gate.*` exists.
 
+## Semantics Policy (v1.2)
+
+Use enforcement-by-construction:
+- when semantics are wrapper-enforceable from declared IR boundary data, BEAR enforces them in generated wrappers
+- do not push those semantics into impl conventions or suppression comments
+
+Why this matters:
+- idempotency is wrapper-enforceable from declared key fields, declared store port, declared outputs
+- invariants are wrapper-enforced structural output checks (fresh and replay)
+
+Do not extend BEAR semantics by inference:
+- if enforcement requires hidden domain context/policy, it is out of scope
+- BEAR is not a business rules engine or transaction framework
+
+Canonical rule:
+- Enforce only semantics that are wrapper-checkable from declared inputs/outputs/ports, require no hidden context, are deterministic, and have frozen contracts.
+
 ## Failure Triage (Deterministic)
 
 1. `64` usage error:
@@ -111,13 +131,15 @@ Do not assume `bin/bear-all.*` or `bin/pr-gate.*` exists.
 - for `CODE=BOUNDARY_BYPASS`:
   - remove direct impl usage from `src/main/**`
   - wire generated entrypoints with non-null ports
-  - ensure declared effect ports are used (or add exact `// BEAR:PORT_USED <portParam>` suppression)
+  - ensure declared logic-required effect ports are used
+  - do not suppress wrapper-owned semantic ports (`// BEAR:PORT_USED ...` is invalid for those)
 - declare required port/op in IR
 - compile
 - route call through generated port interface
 
 5. `4` project tests failed:
 - fix implementation/tests
+- if `CODE=INVARIANT_VIOLATION`, treat marker details as authoritative semantic failure from wrapper checks (fresh/replay)
 - if compiler reports unreachable code in `*Impl.java`, replace the generated stub body entirely (do not append logic below placeholder return/throw)
 - verify `*Impl.java` stays in `src/main/java/blocks/<pkg-segment>/impl/` (package `blocks.<pkg-segment>.impl`) unless BEAR compile regenerated a different path
 
@@ -133,9 +155,18 @@ Index troubleshooting:
 - `projectRoot` must be a repo-relative directory path.
 - repo root is valid and represented as `.`.
 - if index fails validation, fix `name`/`ir`/`projectRoot` and rerun `check --all`.
+- single-command (`compile`/`check`/`fix`/`pr-check`) identity resolution uses `(ir, projectRoot)` tuple matching when an index is discoverable:
+  - `0` matches => single-IR fallback identity mode
+  - `1` match => index identity mode (index name authoritative)
+  - `>1` matches => deterministic ambiguous-index validation failure
+- canonical identity mismatch is validated using frozen normalization (camel split, non-alnum collapse, lowercase token join with `-`).
 
 8. `70` internal failure:
 - collect output and report as tool defect
+
+8b. `2` manifest semantic validation failure:
+- `CODE=MANIFEST_INVALID` means generated wiring semantic contracts are inconsistent
+- regenerate compile artifacts and rerun; do not hand-edit generated wiring as a final fix
 
 9. `74` containment failure (`CONTAINMENT_NOT_VERIFIED` / `CONTAINMENT_UNSUPPORTED_TARGET`):
 - if missing/stale marker or missing generated containment script/index:
