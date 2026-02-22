@@ -13,6 +13,7 @@ Purpose:
 
 Reference boundary:
 - use only `.bear/agent/**` guidance plus project-local BEAR artifacts (`spec/*.bear.yaml`, `bear.blocks.yaml`, `build/generated/bear/**` when present).
+- current working tree + current IR/index contracts are authoritative for BEAR decisions; history can be used as auxiliary context.
 
 ## Canonical Flows
 
@@ -132,7 +133,12 @@ Canonical rule:
 - for `CODE=BOUNDARY_BYPASS`:
   - remove direct impl usage from `src/main/**`
   - remove classloading reflection APIs (`Class.forName`, `loadClass`) unless exact-path allowlisted
+  - remove governed logic->governed impl bindings from:
+    - `src/main/resources/META-INF/services/**`
+    - `src/main/java/module-info.java` (`provides ... with ...`)
   - remove generated impl placeholder bodies (`RULE=IMPL_PLACEHOLDER`)
+  - use generated `Wrapper.of(<ports...>)` for production wiring
+  - keep `(ports..., Logic)` constructor for tests/advanced injection
   - wire generated entrypoints with non-null ports
   - ensure declared logic-required effect ports are used
   - do not suppress wrapper-owned semantic ports (`// BEAR:PORT_USED ...` is invalid for those)
@@ -213,6 +219,7 @@ Lock and environment troubleshooting:
 1. Writing feature classes before creating any `spec/*.bear.yaml`.
 2. Implementing custom ports/contracts to replace missing generated BEAR interfaces.
 3. Deleting or skipping `bear.blocks.yaml` in multi-block state to force per-IR fallback.
+4. Using old commits/branches/stashes to justify outputs that conflict with current working tree state or current IR/index contracts.
 
 ## Completion Report Addendum
 
