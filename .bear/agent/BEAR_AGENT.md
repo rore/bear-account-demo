@@ -32,7 +32,12 @@ Purpose:
 16. Retry budget for tooling/lock defects: rely on BEAR's deterministic project-test runner attempts/fallback (including Windows early fallback); if failure persists after BEAR retries, stop and report blocker details.
 17. Never add workaround type stubs/classes under `src/main/java/com/bear/generated/**` (for example fake `BigDecimal`); generated classes there are BEAR-owned.
 18. If implementation needs a new library, declare it in `block.impl.allowedDeps` (IR-first); do not silently add impl classpath reach.
-19. For IR with `impl.allowedDeps` on Java+Gradle projects, ensure the project applies generated containment entrypoint and run Gradle once before relying on `bear check`.
+19. For Java+Gradle projects with containment in scope, rely on `bear check` containment auto-injection.
+    - containment scope is active when any is true: selected block has `impl.allowedDeps`, `spec/_shared.policy.yaml` exists, or `src/main/java/blocks/_shared/**` contains `.java`.
+    - `bear check` injects `-I build/generated/bear/gradle/bear-containment.gradle` into project tests when scope is active.
+    - in `check --all`, containment preflight/tests/marker verification run once per `projectRoot` (not per block).
+    - marker verification runs only after successful project tests.
+    - if `_shared` is in scope and `spec/_shared.policy.yaml` is missing, default `_shared` allowlist is JDK-only.
 20. For generated `*Impl.java`, replace the generated stub method body; do not keep the placeholder return/throw and append logic below it.
 21. Canonical user-owned implementation path is `src/main/java/blocks/<pkg-segment>/impl/<BlockName>Impl.java` and package `blocks.<pkg-segment>.impl`; do not relocate `*Impl.java` to `src/main/java/com/bear/generated/**`.
 22. In greenfield, default to exactly one block; creating block #2 requires `Decomposition Evidence` with direct spec quotes before generation.
@@ -42,11 +47,18 @@ Purpose:
 26. For each logic-required effect port, impl code must use the corresponding port parameter directly, pass it through to a helper call, or explicitly suppress with exact same-file line `// BEAR:PORT_USED <portParamName>`; wrapper-owned semantic ports must not be used/suppressed from impl code.
 27. Keep execute-path business logic inside governed impl/block-root code; do not delegate execution logic from governed impls to non-governed external packages.
 28. Do not implement generated `com.bear.generated.*Port` interfaces outside governed roots; place such adapters only under the block root or `src/main/java/blocks/_shared`.
-29. If `check` writes `build/bear/check.blocked.marker` (`PROJECT_TEST_LOCK`/`PROJECT_TEST_BOOTSTRAP`), treat it as advisory and continue fixing root cause; use `bear unblock --project <path>` to clear stale marker when needed.
-30. Do not patch `build.gradle` manually as first response to lock/bootstrap failures; first use BEAR deterministic retry/fallback and BEAR-owned generated wiring.
-31. Agent guidance must remain package-local: rely on `.bear/agent/**` plus project-local BEAR artifacts (`spec/*.bear.yaml`, `bear.blocks.yaml`, `build/generated/bear/**`), not non-shipped repo docs.
-32. If using reflection/hygiene policy allowlists, keep exact repo-relative path entries in `.bear/policy/*.txt` sorted, unique, and non-glob.
-33. You may use git history/branches/stashes for context in real projects, but BEAR decisions and outputs must remain grounded in the current working tree plus current IR/index contracts.
+29. Do not collapse multiple generated block packages into one adapter class unless explicitly intended under `_shared`; if intentional, marker must be exact `// BEAR:ALLOW_MULTI_BLOCK_PORT_IMPL` within 5 non-empty lines above class declaration.
+30. Marker `// BEAR:ALLOW_MULTI_BLOCK_PORT_IMPL` is invalid outside `src/main/java/blocks/_shared/**` and will fail boundary bypass checks.
+31. If `check` writes `build/bear/check.blocked.marker` (`PROJECT_TEST_LOCK`/`PROJECT_TEST_BOOTSTRAP`), treat it as advisory and continue fixing root cause; use `bear unblock --project <path>` to clear stale marker when needed.
+32. Do not patch `build.gradle` manually as first response to lock/bootstrap failures; first use BEAR deterministic retry/fallback and BEAR-owned generated wiring.
+33. Agent guidance must remain package-local: rely on `.bear/agent/**` plus project-local BEAR artifacts (`spec/*.bear.yaml`, `bear.blocks.yaml`, `build/generated/bear/**`), not non-shipped repo docs.
+34. If using reflection/hygiene policy allowlists, keep exact repo-relative path entries in `.bear/policy/*.txt` sorted, unique, and non-glob.
+35. You may use git history/branches/stashes for context in real projects, but BEAR decisions and outputs must remain grounded in the current working tree plus current IR/index contracts.
+36. Do not report completion unless both repository-level gates are evidenced green:
+    - `bear check --all --project <repoRoot>`
+    - `bear pr-check --all --project <repoRoot> --base <ref>`
+    - Do not report done if either command is missing or non-zero.
+37. Treat `BEAR_STRUCTURAL_SIGNAL|...` lines as structural evidence by default (non-failing); only treat as gate failure when strict mode is explicitly enabled (`-Dbear.structural.tests.strict=true`).
 
 ## Policy Contract (Check)
 
@@ -71,6 +83,10 @@ When running `bear check` or `bear check --all`:
 - execute-body containment is always on (no policy toggle).
 - allowed source roots come from manifest `governedSourceRoots` (`blockRootSourceDir` first; reserved `src/main/java/blocks/_shared` second).
 - unresolved call targets do not fail containment in v1.3.
+11. `_shared` policy rule:
+- path-scoped policy file is `spec/_shared.policy.yaml`.
+- parser is strict (`version: v1`, `scope: shared`, deterministic pinned `impl.allowedDeps`).
+- shared allowlist mismatch is a containment failure; remediation is policy update or removing external deps from `_shared`.
 9. Strict hygiene rule:
 - unexpected seed paths fail with `CODE=HYGIENE_UNEXPECTED_PATHS` unless allowlisted.
 10. For concrete syntax examples, see header comments in `.bear/policy/reflection-allowlist.txt` and `.bear/policy/hygiene-allowlist.txt`.
@@ -102,14 +118,14 @@ Before planning or editing:
 - run `--all` command variants as canonical gates
   - if index validation fails, fix `name`/`ir`/`projectRoot` entries and rerun `check --all`
 8. Compile/generate after IR changes.
-   - when IR contains `impl.allowedDeps`:
-     - confirm project applies `build/generated/bear/gradle/bear-containment.gradle`
-     - run Gradle build/test once to refresh containment marker
+   - when containment scope is active (`impl.allowedDeps`, `_shared` policy, `_shared` sources), `bear check` handles containment init-script wiring and marker verification.
 9. If generated artifacts are stale/drifted, run `bear fix` (or `fix --all` when indexed).
 10. In greenfield bootstrap (`0` IR at start), no feature implementation edits are allowed until at least one `validate` and `compile` succeeds.
 11. Implement only after generated contracts exist.
 12. Implement only in user-owned implementation/tests.
-13. Run canonical gate to `0`.
+13. Run repository-level completion gates to `0`:
+    - `bear check --all --project <repoRoot>`
+    - `bear pr-check --all --project <repoRoot> --base <ref>`
 14. Report deterministic completion summary.
 
 ## Generic Decomposition Rules
@@ -176,7 +192,7 @@ Use direct CLI commands as canonical defaults:
 - clear check-only block marker: `bear unblock --project <repoRoot>`
 - PR/base: `bear pr-check ...`
 - repair generated artifacts: `bear fix <ir-file> --project <repoRoot>` / `bear fix --all --project <repoRoot>`
-- allowed-deps enforcement prereq (Java+Gradle): apply generated containment script and run Gradle once so `build/bear/containment/applied.marker` is fresh
+- allowed-deps enforcement behavior (Java+Gradle): `bear check` auto-injects generated containment init script when scope is active and verifies markers after successful tests
 
 Wrappers are optional project policy:
 - if a repo explicitly ships wrappers and documents them as canonical, use them
@@ -191,5 +207,7 @@ Report completion in this format:
 - `IR delta: <files + boundary notes>`
 - `Implementation delta: <files>`
 - `Tests delta: <files>`
-- `Gate result: <command> => <exit>`
+- `Gate results:`
+- `- bear check --all --project <repoRoot> => <exit>`
+- `- bear pr-check --all --project <repoRoot> --base <ref> => <exit>`
 
