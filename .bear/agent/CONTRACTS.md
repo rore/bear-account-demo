@@ -37,7 +37,7 @@ Default decomposition:
 
 Explicit split signals:
 1. `lifecycle_split`: independently deployable/evolving lifecycle boundaries.
-2. `effect_boundary_split`: external capability boundaries (ports/ops) must be isolated.
+2. `effects_split`: external capability boundaries (ports/ops) must be isolated.
 3. `authority_split`: ownership/trust/approval authority boundaries must be isolated.
 4. `state_domain_split`: state domain boundaries must be isolated.
 5. `idempotency_split`: idempotency key/store shape is incompatible across candidate grouped operations.
@@ -48,8 +48,11 @@ Rule:
 2. Multiple external operations may be grouped when compatibility signals are `_same` and no split trigger applies.
 
 IR v1 capability fact:
-1. IR v1 supports one `logic` block per IR file.
-2. This is a structural capability fact, not a decomposition mandate.
+1. IR v1 supports one `logic` block per IR file with `block.operations` (multi-operation).
+2. Block boundary authority remains block-level (`effects`, idempotency capability, allowed invariants).
+3. Operation contracts/usages are per-operation subsets inside that block boundary.
+4. Grouped decomposition is structural in v1 (not only reporting): one block can host multiple compatible operations.
+5. Add/remove operation entrypoints is governance-relevant surface expansion.
 
 ## Contract Modeling Anti-Patterns (Normative)
 

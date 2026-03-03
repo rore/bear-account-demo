@@ -28,6 +28,13 @@ Purpose:
 - use `bear fix` / `fix --all` for generated artifacts.
 - or rerun compile for changed IR.
 
+IR schema cutover reminders:
+1. `block.operations` is required in `v1`.
+2. Each operation must declare `contract` and `uses`.
+3. Operation `uses` must be subset of block `effects`.
+4. If `operation.idempotency.mode=use`, operation `uses` must include idempotency store `getOp` and `putOp`.
+5. Operation invariants must be subset of block allowed invariants.
+
 3. Boundary bypass lane (`exit 7`):
 - remove direct impl usage from production seams.
 - remove classloading reflection unless allowlisted.
@@ -50,6 +57,9 @@ Purpose:
 5. Boundary expansion lane (`exit 5`, `pr-check`):
 - treat as governance review signal, not random failure.
 - verify `--base` selection first; `--base HEAD` can misclassify or hide intended delta unless explicitly instructed.
+- operation add/remove is boundary-expanding surface change.
+- operation `uses`, idempotency, and invariants deltas are boundary-expanding.
+- operation contract deltas are operation-attributed (for example `op.ExecuteWithdraw:input.note:string`).
 - if output contains `BOUNDARY_EXPANSION_DETECTED` but exit is not boundary-expansion exit (`5`), classify as tool anomaly (`OTHER`) and stop.
 
 6. Greenfield artifact-mining contract lane:
@@ -111,7 +121,7 @@ Escalation threshold:
 ## REACH_REMEDIATION_NON_SOLUTIONS
 
 These are explicitly invalid remediation patterns:
-1. Rewriting forbidden import usage as FQCN usage (for example replacing `import java.net.X` with `new java.net.X(...)`).
+1. If a surface is forbidden by reach policy, switching import-form usage to FQCN-form usage is not remediation.
 2. "Log and return" without explicit missing-state signaling for update paths.
 
 Required direction:
