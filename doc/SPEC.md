@@ -1,101 +1,107 @@
-# Product Spec: Wallet Service (BEAR Demo)
+# Minimal Spec: Account + Transaction Log
 
 ## Goal
-Build a small backend service that manages wallets and simple money movement.
+
+Implement a tiny bank-account service with two domains:
+
+1. Account domain: owns balance and validates business rules.
+2. Transaction Log domain: immutable append-only log of account operations.
+
+Transaction Log is not directly accessible for writes by any external API. Only the Account domain may append to it.
 
 ## Delivery constraints
 
-In-memory only.
+- In-memory only.
+- No external database.
+- No message bus.
+- No authentication/authorization.
+- Expose a minimal REST API.
 
-No external database.
+## Data Model
 
-No message bus.
+Account
 
-No authentication.
+- accountId: string
+- balanceCents: int (must be >= 0)
 
-Expose a minimal REST API.
+Transaction
 
-## Entities
+- accountId: string
+- seq: int (monotonic increasing per account, starting at 1)
+- type: string ("DEPOSIT" | "WITHDRAW")
+- requestId: string
+- amountCents: int
+- balanceAfterCents: int
 
-Wallet: walletId, ownerId, status
+## External API
 
-Balance: integer cents
+### 1. Create account
 
-Operation: seq, opId, requestId, type, amountCents, walletId, balanceCents
+- POST /accounts
+- Body: { "ownerId": "string" }
+- Response 200: { "accountId": "string" }
 
-## API contract
+### 2. Deposit
 
-### 1. Create wallet
+- POST /accounts/{accountId}/deposit
+- Body: { "amountCents": int, "requestId": "string" }
+- Response 200: { "balanceCents": int, "txSeq": int }
+- Errors:
+  - 400 if amountCents <= 0 or missing requestId
+  - 404 if accountId not found
 
-POST /wallets
+### 3. Withdraw
 
-Input: ownerId
-
-Output: walletId
-
-### 2. Deposit (idempotent)
-
-POST /wallets/{walletId}/deposits
-
-Input: amountCents, requestId
-
-Rules:
-
-amountCents > 0
-
-idempotent by (walletId, requestId)
-
-replay returns the exact same {opId, balanceCents} as the first successful call
-
-Output: opId, balanceCents
-
-### 3. Withdraw (idempotent + non-negative)
-
-POST /wallets/{walletId}/withdrawals
-
-Input: amountCents, requestId
-
-Rules:
-
-amountCents > 0
-
-resulting balance must not be negative
-
-idempotent by (walletId, requestId)
-
-replay returns the exact same {opId, balanceCents} as the first successful call
-
-Output: opId, balanceCents
+- POST /accounts/{accountId}/withdraw
+- Body: { "amountCents": int, "requestId": "string" }
+- Response 200: { "balanceCents": int, "txSeq": int }
+- Errors:
+  - 400 if amountCents <= 0 or missing requestId
+  - 404 if accountId not found
+  - 409 if insufficient funds (would make balance negative)
 
 ### 4. Get balance
 
-GET /wallets/{walletId}/balance
+- GET /accounts/{accountId}/balance
+- Response 200: { "balanceCents": int }
+- Errors:
+  - 404 if accountId not found
 
-Output: balanceCents
+### 5. Get transactions
 
-### 5. Get statement
+- GET /accounts/{accountId}/transactions?sinceSeq=<int>
+- sinceSeq defaults to 0 if omitted
+- Response 200: { "transactions": [ { "seq": int, "type": string, "requestId": string, "amountCents": int, "balanceAfterCents": int } ... ] }
+- Semantics: return only transactions with seq > sinceSeq, in ascending seq order
+- Errors:
+  - 400 if sinceSeq < 0
+  - 404 if accountId not found
 
-GET /wallets/{walletId}/statement?sinceSeq=<optional>
+## Core Rules
 
-Output: entries ordered by seq ascending
+Idempotency
 
-Each entry contains: seq, opId, requestId, type, amountCents, balanceCents
+- Deposit and Withdraw are idempotent by (accountId, requestId).
+- Replaying the same requestId for the same accountId must return exactly the same {balanceCents, txSeq} as the first successful execution.
+- Idempotency applies only to successful operations. If the first attempt failed, a retry is treated as a normal new attempt.
 
-## Ordering and identifiers
+Transaction Log rules
 
-The service assigns each operation a monotonically increasing seq.
+- Append-only. No updates/deletes.
+- seq is assigned at append time and is strictly increasing per account.
+- The Transaction Log append operation is internal-only: it can only be invoked from Account domain logic. No external endpoint may append directly.
 
-Statement ordering is defined by seq.
+## Architecture Constraints (Domain-Level)
 
-opId is service-generated and unique within a single run.
+- Account and Transaction Log are separate domain components with independent in-memory state.
+- Account component owns balance state and business validation.
+- Transaction Log component owns transaction storage and seq assignment.
+- Account component must not write transaction storage directly; it may only call Transaction Log through an internal append operation.
+- Transaction Log component must not read or modify Account balance state.
+- No external API may append transactions directly.
 
-## Error expectations
+## Non-goals
 
-invalid amount => 400 validation error
-
-missing wallet => 404 not found
-
-insufficient funds => 409 domain error
-
-idempotent replay => 200 with the same successful payload as the original request
+- No persistence requirements beyond "works in-memory for tests".
+- No concurrency guarantees beyond deterministic behavior within a single process run.
 
