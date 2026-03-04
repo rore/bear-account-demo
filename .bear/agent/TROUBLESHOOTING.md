@@ -4,6 +4,16 @@ Purpose:
 - Deterministic troubleshooting router for BEAR gate failures.
 - Consult only when command output is non-zero or blocked.
 
+
+## Agent JSON-First Protocol
+
+When running machine loops with `--agent`:
+1. Parse only stdout JSON; do not parse human prose output for control decisions.
+2. On failure, use `nextAction` first.
+3. If `nextAction.commands` exists, execute only those commands.
+4. If `nextAction` is `null`, route by `(category, failureCode, ruleId|reasonKey)` and escalate as required.
+5. Treat stderr as evidence only.
+
 ## Triage Router
 
 1. Usage/args issue (`64`) -> fix invocation/arguments and rerun same command.
@@ -127,6 +137,44 @@ Escalation threshold:
 1. Escalate only if the same containment/classpath failure signature remains after the single deterministic repair.
 2. Include pre/post `bear check` outputs and pre/post containment snapshots in escalation.
 
+
+## Registry-Synced Template Keys
+
+Lookup contract:
+1. exact key `(category, failureCode, ruleId|reasonKey)`
+2. failure default `(category, failureCode, *)`
+3. category fallback (`INFRA` or `GOVERNANCE`)
+
+This table is synchronized with runtime template maps by test coverage in `BearPackageDocsConsistencyTest`.
+
+### Exact Template Keys (AgentTemplateRegistry.EXACT)
+
+- `GOVERNANCE|BOUNDARY_BYPASS|DIRECT_IMPL_USAGE`
+- `GOVERNANCE|BOUNDARY_BYPASS|IMPL_CONTAINMENT_BYPASS`
+- `GOVERNANCE|UNDECLARED_REACH|UNDECLARED_REACH`
+- `GOVERNANCE|REFLECTION_DISPATCH_FORBIDDEN|REFLECTION_DISPATCH_FORBIDDEN`
+- `INFRA|DRIFT_MISSING_BASELINE|DRIFT_MISSING_BASELINE`
+- `INFRA|IO_ERROR|PROJECT_TEST_LOCK`
+- `INFRA|IO_ERROR|PROJECT_TEST_BOOTSTRAP`
+- `INFRA|IO_GIT|MERGE_BASE_FAILED`
+- `INFRA|IO_GIT|NOT_A_GIT_REPO`
+- `INFRA|IO_ERROR|READ_HEAD_FAILED`
+- `INFRA|MANIFEST_INVALID|MANIFEST_INVALID`
+
+### Failure Default Keys (AgentTemplateRegistry.FAILURE_DEFAULTS)
+
+- `GOVERNANCE|BOUNDARY_BYPASS|`
+- `GOVERNANCE|BOUNDARY_EXPANSION|`
+- `INFRA|IR_VALIDATION|`
+- `INFRA|POLICY_INVALID|`
+- `INFRA|DRIFT_DETECTED|`
+- `INFRA|IO_ERROR|`
+- `INFRA|IO_GIT|`
+- `INFRA|TEST_FAILURE|`
+- `INFRA|COMPILE_FAILURE|`
+- `INFRA|TEST_TIMEOUT|`
+- `INFRA|INVARIANT_VIOLATION|`
+
 ## Forbidden Actions
 
 1. Do not edit `build.gradle`, `settings.gradle`, `gradlew`, `gradlew.bat`, `.bear/**`, or `bin/bear*` unless explicitly instructed.
@@ -163,6 +211,13 @@ Success criteria:
 5. Do not use `bear unblock` for intentional boundary expansion.
 6. If boundary expansion is expected, report `BLOCKED` with required governance next action.
 
+
+## GREENFIELD_PR_CHECK_POLICY
+
+Use this branch when greenfield baseline PR behavior is encountered:
+1. `pr-check` may expectedly fail with `BOUNDARY_EXPANSION_DETECTED` for newly introduced blocks/contracts/ports.
+2. Do not shrink IR/contracts to force green.
+3. Route to `.bear/agent/REPORTING.md` baseline waiting semantics (`WAITING_FOR_BASELINE_REVIEW`).
 ## GREENFIELD_BASELINE_PR
 
 Use this class when all are true:
@@ -209,6 +264,14 @@ Labels:
 1. `AGENT_PACKAGE_PARITY_PRECONDITION`
 2. `GREENFIELD_HARD_STOP`
 3. `INDEX_REQUIRED_PREFLIGHT`
+
+Label guidance:
+1. `AGENT_PACKAGE_PARITY_PRECONDITION`:
+- required files missing before implementation start (`.bear/agent/CONTRACTS.md`, `.bear/agent/TROUBLESHOOTING.md`, `.bear/agent/REPORTING.md`, `.bear/agent/ref/IR_REFERENCE.md`).
+2. `GREENFIELD_HARD_STOP`:
+- `spec/*.bear.yaml` empty and implementation edits attempted before successful `bear validate` + `bear compile`.
+3. `INDEX_REQUIRED_PREFLIGHT`:
+- index-required workflow inferred but `bear.blocks.yaml` preflight is unmet before `--all` gates.
 
 Deterministic handling:
 1. classify `Gate blocker` as `OTHER`.
