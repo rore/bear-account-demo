@@ -27,13 +27,39 @@ Bootstrap guardrails:
 8. After a gate failure in `--agent` mode, follow `nextAction.commands` only.
 9. If `nextAction` is `null`, route to `.bear/agent/TROUBLESHOOTING.md` using `(category, failureCode, ruleId|reasonKey)`.
 10. Completion requires both gates and reporting contract compliance:
-- `bear check --all --project <repoRoot> [--collect=all] [--agent]`
-- `bear pr-check --all --project <repoRoot> --base <ref> [--collect=all] [--agent]`
+- `bear check --all --project <repoRoot> [--collect=all] --agent`
+- `bear pr-check --all --project <repoRoot> --base <ref> [--collect=all] --agent`
+
+## Implementation Preconditions
+
+Before implementation edits, load `.bear/agent/TROUBLESHOOTING.md` and `.bear/agent/REPORTING.md`.
+
+Minimum required sections (to avoid context overload):
+1. `.bear/agent/TROUBLESHOOTING.md` -> `Agent JSON-First Protocol`, `PROCESS_VIOLATION`, `GREENFIELD_PR_CHECK_POLICY`.
+2. `.bear/agent/REPORTING.md` -> `Agent Loop Contract`, `Required Fields`, `Outcome Rules`.
+
+Mandatory stop conditions:
+1. `GREENFIELD_HARD_STOP`:
+- if `spec/*.bear.yaml` is empty, do not edit implementation.
+- first create IR, then run `bear validate <ir-file>` and `bear compile <ir-file> --project <repoRoot>` (or `compile --all` after index preflight).
+2. `AGENT_PACKAGE_PARITY_PRECONDITION`:
+- before implementation edits, `.bear/agent/TROUBLESHOOTING.md` and `.bear/agent/REPORTING.md` must both exist and be readable.
+- if any required file is missing/unreadable, stop with `PROCESS_VIOLATION|AGENT_PACKAGE_PARITY_PRECONDITION|<missingPath>` and escalate.
+3. `INDEX_REQUIRED_PREFLIGHT`:
+- before any `--all` gate, `bear.blocks.yaml` must exist and be readable.
+- if missing/unreadable, stop and resolve preflight before continuing.
+4. `POST_FAILURE_DISCIPLINE`:
+- after any gate failure in `--agent` mode, execute only `nextAction.commands`.
+- if `nextAction` is `null`, route deterministically via troubleshooting.
+- any command variant drift is a process violation and must stop.
+5. `COMPLETE_DISCIPLINE`:
+- report `Run outcome: COMPLETE` only after canonical done gates are green.
 
 ## Command Surface
 
 Before any failure:
 1. You may run the standard gate sequence: `validate`, `compile|fix`, `check`, `pr-check`.
+2. For automation/machine loops, run `check` and `pr-check` in `--agent` mode.
 
 After failure in `--agent` mode:
 1. If JSON `nextAction.commands` is present, execute only those commands.
@@ -90,13 +116,15 @@ Read on demand:
 ## Hard-Stop Routing
 
 1. On `INTERNAL_ERROR` (`70`), repeated timeout (`124`), or `IO_LOCK`, follow `.bear/agent/TROUBLESHOOTING.md` and stop when anomaly criteria require stop.
-2. For process preconditions (missing agent package files, greenfield implementation before IR compile, missing index preflight), classify `PROCESS_VIOLATION|<label>|<evidence>` and follow `.bear/agent/TROUBLESHOOTING.md` labels.
+2. For process preconditions (missing agent package files, greenfield implementation before IR compile, missing index preflight, post-failure command drift), classify `PROCESS_VIOLATION|<label>|<evidence>` and follow `.bear/agent/TROUBLESHOOTING.md` labels.
 3. For expected greenfield baseline `BOUNDARY_EXPANSION_DETECTED`, follow `.bear/agent/TROUBLESHOOTING.md` greenfield policy and report `WAITING_FOR_BASELINE_REVIEW` per `.bear/agent/REPORTING.md`.
 4. If spec conflicts with explicit policy/contract rules, stop and escalate unless the spec explicitly authorizes rule changes.
 
 ## Done Gate Contract
 
 Required evidence before completion:
-1. `bear check --all --project <repoRoot> [--collect=all] [--agent] => 0`
-2. `bear pr-check --all --project <repoRoot> --base <ref> [--collect=all] [--agent] => 0`
+1. `bear check --all --project <repoRoot> [--collect=all] --agent => 0`
+2. `bear pr-check --all --project <repoRoot> --base <ref> [--collect=all] --agent => 0`
 3. completion report follows `.bear/agent/REPORTING.md` exactly
+
+
