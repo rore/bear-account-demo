@@ -11,4 +11,5 @@ bear check --all --project .
 ```
 
 Product specification:
-- `doc/SPEC.md`
+- `spec/SPEC.md`
+
