@@ -1,0 +1,52 @@
+version: v1
+block:
+  name: TransactionLog
+  kind: logic
+  operations:
+    - name: AppendTransaction
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+          - name: type
+            type: string
+          - name: requestId
+            type: string
+          - name: amountCents
+            type: int
+          - name: balanceAfterCents
+            type: int
+        outputs:
+          - name: txSeq
+            type: int
+      uses:
+        allow:
+          - port: transactionState
+            kind: external
+            ops: [get, put]
+      invariants:
+        - kind: non_negative
+          field: txSeq
+    - name: GetTransactions
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+          - name: sinceSeq
+            type: int
+        outputs:
+          - name: transactionsJson
+            type: string
+      uses:
+        allow:
+          - port: transactionState
+            kind: external
+            ops: [get]
+  effects:
+    allow:
+      - port: transactionState
+        kind: external
+        ops: [get, put]
+  invariants:
+    - kind: non_negative
+      field: txSeq
