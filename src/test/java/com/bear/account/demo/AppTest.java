@@ -1,5 +1,7 @@
 package com.bear.account.demo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -9,98 +11,128 @@ import java.net.http.HttpResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.sun.net.httpserver.HttpServer;
 
 class AppTest {
-    private App.ServerHandle server;
+    private HttpServer server;
 
     @AfterEach
     void tearDown() {
         if (server != null) {
-            server.close();
+            server.stop(0);
         }
     }
 
     @Test
-    void accountFlowSupportsIdempotencyAndTransactionReads() throws Exception {
-        server = App.start(0);
+    void accountLifecycleAndTransactionFiltering() throws Exception {
+        server = App.createServer(0);
+        server.start();
         HttpClient client = HttpClient.newHttpClient();
+        String baseUrl = "http://localhost:" + server.getAddress().getPort();
 
-        HttpResponse<String> create = post(client, "/accounts", "{\"ownerId\":\"owner-1\"}");
+        HttpResponse<String> create = send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-1\"}");
         assertEquals(200, create.statusCode());
-        String accountId = jsonString(create.body(), "accountId");
+        String accountId = extractString(create.body(), "accountId");
 
-        HttpResponse<String> deposit = post(client, "/accounts/" + accountId + "/deposit", "{\"amountCents\":1500,\"requestId\":\"req-1\"}");
+        HttpResponse<String> deposit = send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":500,\"requestId\":\"req-1\"}");
         assertEquals(200, deposit.statusCode());
-        assertTrue(deposit.body().contains("\"balanceCents\":1500"));
-        assertTrue(deposit.body().contains("\"txSeq\":1"));
+        assertEquals(500, extractInt(deposit.body(), "balanceCents"));
+        assertEquals(1, extractInt(deposit.body(), "txSeq"));
 
-        HttpResponse<String> replay = post(client, "/accounts/" + accountId + "/deposit", "{\"amountCents\":1500,\"requestId\":\"req-1\"}");
-        assertEquals(200, replay.statusCode());
-        assertEquals(deposit.body(), replay.body());
-
-        HttpResponse<String> withdraw = post(client, "/accounts/" + accountId + "/withdraw", "{\"amountCents\":200,\"requestId\":\"req-2\"}");
+        HttpResponse<String> withdraw = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":125,\"requestId\":\"req-2\"}");
         assertEquals(200, withdraw.statusCode());
-        assertTrue(withdraw.body().contains("\"balanceCents\":1300"));
-        assertTrue(withdraw.body().contains("\"txSeq\":2"));
+        assertEquals(375, extractInt(withdraw.body(), "balanceCents"));
+        assertEquals(2, extractInt(withdraw.body(), "txSeq"));
 
-        HttpResponse<String> balance = get(client, "/accounts/" + accountId + "/balance");
+        HttpResponse<String> balance = send(client, "GET", baseUrl + "/accounts/" + accountId + "/balance", null);
         assertEquals(200, balance.statusCode());
-        assertEquals("{\"balanceCents\":1300}", balance.body());
+        assertEquals(375, extractInt(balance.body(), "balanceCents"));
 
-        HttpResponse<String> transactions = get(client, "/accounts/" + accountId + "/transactions");
+        HttpResponse<String> transactions = send(client, "GET", baseUrl + "/accounts/" + accountId + "/transactions?sinceSeq=1", null);
         assertEquals(200, transactions.statusCode());
-        assertTrue(transactions.body().contains("\"seq\":1"));
-        assertTrue(transactions.body().contains("\"type\":\"DEPOSIT\""));
-        assertTrue(transactions.body().contains("\"seq\":2"));
-        assertTrue(transactions.body().contains("\"type\":\"WITHDRAW\""));
-
-        HttpResponse<String> sinceSeq = get(client, "/accounts/" + accountId + "/transactions?sinceSeq=1");
-        assertEquals(200, sinceSeq.statusCode());
-        assertTrue(sinceSeq.body().contains("\"seq\":2"));
-        assertTrue(!sinceSeq.body().contains("\"seq\":1"));
+        assertEquals(1, countOccurrences(transactions.body(), "\"seq\":"));
+        assertEquals(2, extractInt(transactions.body(), "seq"));
+        assertEquals("WITHDRAW", extractString(transactions.body(), "type"));
     }
 
     @Test
-    void withdrawRejectsInsufficientFundsAndBadInput() throws Exception {
-        server = App.start(0);
+    void successfulOperationsAreIdempotentButFailuresAreNotSticky() throws Exception {
+        server = App.createServer(0);
+        server.start();
         HttpClient client = HttpClient.newHttpClient();
+        String baseUrl = "http://localhost:" + server.getAddress().getPort();
 
-        String accountId = jsonString(post(client, "/accounts", "{\"ownerId\":\"owner-2\"}").body(), "accountId");
+        String accountId = extractString(send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-2\"}").body(), "accountId");
 
-        HttpResponse<String> insufficient = post(client, "/accounts/" + accountId + "/withdraw", "{\"amountCents\":1,\"requestId\":\"req-3\"}");
-        assertEquals(409, insufficient.statusCode());
+        HttpResponse<String> firstDeposit = send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":300,\"requestId\":\"same-deposit\"}");
+        HttpResponse<String> replayDeposit = send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":300,\"requestId\":\"same-deposit\"}");
+        assertEquals(200, firstDeposit.statusCode());
+        assertEquals(firstDeposit.body(), replayDeposit.body());
 
-        HttpResponse<String> badRequest = post(client, "/accounts/" + accountId + "/deposit", "{\"amountCents\":0,\"requestId\":\"req-4\"}");
-        assertEquals(400, badRequest.statusCode());
+        HttpResponse<String> failedWithdraw = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":500,\"requestId\":\"same-withdraw\"}");
+        assertEquals(409, failedWithdraw.statusCode());
 
-        HttpResponse<String> missing = get(client, "/accounts/missing/balance");
-        assertEquals(404, missing.statusCode());
+        HttpResponse<String> secondDeposit = send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":400,\"requestId\":\"top-up\"}");
+        assertEquals(200, secondDeposit.statusCode());
+
+        HttpResponse<String> retriedWithdraw = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":500,\"requestId\":\"same-withdraw\"}");
+        assertEquals(200, retriedWithdraw.statusCode());
+        assertEquals(200, extractInt(retriedWithdraw.body(), "balanceCents"));
+        assertEquals(3, extractInt(retriedWithdraw.body(), "txSeq"));
     }
 
-    private HttpResponse<String> post(HttpClient client, String path, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(baseUri(path))
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build();
-        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    @Test
+    void validationAndNotFoundErrorsMatchSpec() throws Exception {
+        server = App.createServer(0);
+        server.start();
+        HttpClient client = HttpClient.newHttpClient();
+        String baseUrl = "http://localhost:" + server.getAddress().getPort();
+
+        HttpResponse<String> missingRequestId = send(client, "POST", baseUrl + "/accounts/missing/deposit", "{\"amountCents\":100}");
+        assertEquals(400, missingRequestId.statusCode());
+
+        HttpResponse<String> missingAccount = send(client, "GET", baseUrl + "/accounts/missing/balance", null);
+        assertEquals(404, missingAccount.statusCode());
+
+        String accountId = extractString(send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-3\"}").body(), "accountId");
+        HttpResponse<String> invalidSince = send(client, "GET", baseUrl + "/accounts/" + accountId + "/transactions?sinceSeq=-1", null);
+        assertEquals(400, invalidSince.statusCode());
     }
 
-    private HttpResponse<String> get(HttpClient client, String path) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(baseUri(path)).GET().build();
-        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    private static HttpResponse<String> send(HttpClient client, String method, String url, String body) throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url));
+        if (body == null) {
+            builder.method(method, HttpRequest.BodyPublishers.noBody());
+        } else {
+            builder.header("Content-Type", "application/json");
+            builder.method(method, HttpRequest.BodyPublishers.ofString(body));
+        }
+        return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private URI baseUri(String path) {
-        return URI.create("http://127.0.0.1:" + server.port() + path);
+    private static String extractString(String json, String field) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\"" + field + "\"\\s*:\\s*\"([^\"]*)\"").matcher(json);
+        if (!matcher.find()) {
+            throw new AssertionError("missing field: " + field + " in " + json);
+        }
+        return matcher.group(1);
     }
 
-    private String jsonString(String json, String field) {
-        String marker = "\"" + field + "\":\"";
-        int start = json.indexOf(marker);
-        int valueStart = start + marker.length();
-        int end = json.indexOf('"', valueStart);
-        return json.substring(valueStart, end);
+    private static int extractInt(String json, String field) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\"" + field + "\"\\s*:\\s*(-?\\d+)").matcher(json);
+        if (!matcher.find()) {
+            throw new AssertionError("missing field: " + field + " in " + json);
+        }
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private static int countOccurrences(String text, String token) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.indexOf(token, index)) >= 0) {
+            count++;
+            index += token.length();
+        }
+        return count;
     }
 }

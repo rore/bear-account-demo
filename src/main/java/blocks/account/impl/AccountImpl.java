@@ -3,7 +3,7 @@ package blocks.account.impl;
 import java.util.UUID;
 
 import com.bear.generated.account.AccountLogic;
-import com.bear.generated.account.AccountStatePort;
+import com.bear.generated.account.AccountStorePort;
 import com.bear.generated.account.Account_CreateAccountRequest;
 import com.bear.generated.account.Account_CreateAccountResult;
 import com.bear.generated.account.Account_DepositRequest;
@@ -17,89 +17,110 @@ import com.bear.generated.account.TransactionLogPort;
 
 public final class AccountImpl implements AccountLogic {
     @Override
-    public Account_CreateAccountResult executeCreateAccount(Account_CreateAccountRequest request, AccountStatePort accountStatePort) {
-        String ownerId = requireText(request.getOwnerId(), "ownerId");
+    public Account_CreateAccountResult executeCreateAccount(Account_CreateAccountRequest request, AccountStorePort accountStorePort) {
+        requireNonBlank(request.getOwnerId(), "ownerId");
+
         String accountId = UUID.randomUUID().toString();
-        accountStatePort.put(BearValue.builder()
+        accountStorePort.create(BearValue.builder()
             .put("accountId", accountId)
-            .put("ownerId", ownerId)
+            .put("ownerId", request.getOwnerId())
             .put("balanceCents", "0")
             .build());
         return new Account_CreateAccountResult(accountId);
     }
 
     @Override
-    public Account_DepositResult executeDeposit(Account_DepositRequest request, AccountStatePort accountStatePort, TransactionLogPort transactionLogPort) {
+    public Account_DepositResult executeDeposit(Account_DepositRequest request, AccountStorePort accountStorePort, TransactionLogPort transactionLogPort) {
         int amountCents = requirePositiveAmount(request.getAmountCents());
-        String requestId = requireText(request.getRequestId(), "requestId");
-        BearValue existing = loadAccount(accountStatePort, request.getAccountId());
-        int newBalance = Integer.parseInt(existing.get("balanceCents")) + amountCents;
-        int txSeq = appendTransaction(transactionLogPort, request.getAccountId(), requestId, amountCents, newBalance, "DEPOSIT");
-        accountStatePort.put(BearValue.builder()
-            .put("accountId", existing.get("accountId"))
-            .put("ownerId", existing.get("ownerId"))
-            .put("balanceCents", Integer.toString(newBalance))
-            .build());
-        return new Account_DepositResult(newBalance, txSeq);
+        requireNonBlank(request.getRequestId(), "requestId");
+        AccountState account = loadAccount(request.getAccountId(), accountStorePort);
+
+        int balanceAfterCents = account.balanceCents() + amountCents;
+        accountStorePort.put(toAccountValue(account.accountId(), account.ownerId(), balanceAfterCents));
+        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "DEPOSIT", request.getRequestId(), amountCents, balanceAfterCents);
+        return new Account_DepositResult(balanceAfterCents, txSeq);
     }
 
     @Override
-    public Account_GetBalanceResult executeGetBalance(Account_GetBalanceRequest request, AccountStatePort accountStatePort) {
-        BearValue existing = loadAccount(accountStatePort, request.getAccountId());
-        return new Account_GetBalanceResult(Integer.parseInt(existing.get("balanceCents")));
+    public Account_GetBalanceResult executeGetBalance(Account_GetBalanceRequest request, AccountStorePort accountStorePort) {
+        AccountState account = loadAccount(request.getAccountId(), accountStorePort);
+        return new Account_GetBalanceResult(account.balanceCents());
     }
 
     @Override
-    public Account_WithdrawResult executeWithdraw(Account_WithdrawRequest request, AccountStatePort accountStatePort, TransactionLogPort transactionLogPort) {
+    public Account_WithdrawResult executeWithdraw(Account_WithdrawRequest request, AccountStorePort accountStorePort, TransactionLogPort transactionLogPort) {
         int amountCents = requirePositiveAmount(request.getAmountCents());
-        String requestId = requireText(request.getRequestId(), "requestId");
-        BearValue existing = loadAccount(accountStatePort, request.getAccountId());
-        int currentBalance = Integer.parseInt(existing.get("balanceCents"));
-        if (currentBalance < amountCents) {
-            throw new InsufficientFundsException(request.getAccountId());
+        requireNonBlank(request.getRequestId(), "requestId");
+        AccountState account = loadAccount(request.getAccountId(), accountStorePort);
+        if (account.balanceCents() < amountCents) {
+            throw new InsufficientFundsException(account.accountId());
         }
-        int newBalance = currentBalance - amountCents;
-        int txSeq = appendTransaction(transactionLogPort, request.getAccountId(), requestId, amountCents, newBalance, "WITHDRAW");
-        accountStatePort.put(BearValue.builder()
-            .put("accountId", existing.get("accountId"))
-            .put("ownerId", existing.get("ownerId"))
-            .put("balanceCents", Integer.toString(newBalance))
-            .build());
-        return new Account_WithdrawResult(newBalance, txSeq);
+
+        int balanceAfterCents = account.balanceCents() - amountCents;
+        accountStorePort.put(toAccountValue(account.accountId(), account.ownerId(), balanceAfterCents));
+        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "WITHDRAW", request.getRequestId(), amountCents, balanceAfterCents);
+        return new Account_WithdrawResult(balanceAfterCents, txSeq);
     }
 
-    private BearValue loadAccount(AccountStatePort accountStatePort, String accountId) {
-        String resolvedAccountId = requireText(accountId, "accountId");
-        BearValue existing = accountStatePort.get(BearValue.builder().put("accountId", resolvedAccountId).build());
-        if (existing.get("accountId") == null) {
-            throw new AccountNotFoundException(resolvedAccountId);
+    private static AccountState loadAccount(String accountId, AccountStorePort accountStorePort) {
+        requireNonBlank(accountId, "accountId");
+        BearValue stored = accountStorePort.get(BearValue.builder().put("accountId", accountId).build());
+        if (stored.get("accountId") == null) {
+            throw new AccountNotFoundException(accountId);
         }
-        return existing;
+        return new AccountState(
+            stored.get("accountId"),
+            stored.get("ownerId"),
+            parseInt(stored.get("balanceCents"), "balanceCents"));
     }
 
-    private int appendTransaction(TransactionLogPort transactionLogPort, String accountId, String requestId, int amountCents, int balanceAfterCents, String type) {
-        BearValue appended = transactionLogPort.call(BearValue.builder()
+    private static BearValue toAccountValue(String accountId, String ownerId, int balanceCents) {
+        return BearValue.builder()
+            .put("accountId", accountId)
+            .put("ownerId", ownerId)
+            .put("balanceCents", Integer.toString(balanceCents))
+            .build();
+    }
+
+    private static int appendTransaction(
+        TransactionLogPort transactionLogPort,
+        String accountId,
+        String type,
+        String requestId,
+        int amountCents,
+        int balanceAfterCents
+    ) {
+        BearValue result = transactionLogPort.call(BearValue.builder()
             .put("op", "AppendTransaction")
             .put("accountId", accountId)
+            .put("type", type)
+            .put("requestId", requestId)
             .put("amountCents", Integer.toString(amountCents))
             .put("balanceAfterCents", Integer.toString(balanceAfterCents))
-            .put("requestId", requestId)
-            .put("type", type)
             .build());
-        return Integer.parseInt(appended.get("txSeq"));
+        return parseInt(result.get("txSeq"), "txSeq");
     }
 
-    private int requirePositiveAmount(Integer amountCents) {
+    private static int requirePositiveAmount(Integer amountCents) {
         if (amountCents == null || amountCents <= 0) {
             throw new IllegalArgumentException("amountCents must be > 0");
         }
         return amountCents;
     }
 
-    private String requireText(String value, String fieldName) {
+    private static void requireNonBlank(String value, String field) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new IllegalArgumentException(field + " is required");
         }
-        return value;
+    }
+
+    private static int parseInt(String raw, String field) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalStateException(field + " is missing");
+        }
+        return Integer.parseInt(raw);
+    }
+
+    private record AccountState(String accountId, String ownerId, int balanceCents) {
     }
 }
