@@ -18,19 +18,19 @@ Bootstrap guardrails:
 - multi-block: `>=2` IR files, `bear.blocks.yaml` required
 - if `bear.blocks.yaml` exists, treat as multi-block regardless of IR file count
 2. Canonical IR directory is `bear-ir/` unless repo policy says otherwise.
-3. IR-first always; in greenfield run `bear validate` and `bear compile` before implementation edits.
-4. Never edit generated artifacts under `build/generated/bear/**`.
-5. Do not self-edit infra harness files unless explicitly instructed:
+3. Before inferring branch role or choosing `pr-check --base`, read `README.md` for branch context and branch-tree guidance.
+4. IR-first always; in greenfield run `bear validate` and `bear compile` before implementation edits.
+5. Never edit generated artifacts under `build/generated/bear/**`.
+6. Do not self-edit infra harness files unless explicitly instructed:
 - `build.gradle`, `settings.gradle`, `gradlew`, `gradlew.bat`, `.bear/agent/**`, `.bear/tools/**`, `bin/bear*`
-6. For machine loops, run gates with `--agent` (usually with `--collect=all`).
-7. In `--agent` mode, stdout JSON is the control interface; stderr is diagnostics/evidence.
-8. After a gate failure in `--agent` mode, follow `nextAction.commands` only.
-9. On containment/classpath mismatch, run one `bear compile --all --project <repoRoot>` repair and rerun once; never move/copy impl or exception classes into `_shared`.
-10. If `nextAction` is `null`, route to `.bear/agent/TROUBLESHOOTING.md` using `(category, failureCode, ruleId|reasonKey)`.
-11. Completion requires both gates and minimal core reporting contract compliance:
+7. For machine loops, run gates with `--agent` (usually with `--collect=all`).
+8. In `--agent` mode, stdout JSON is the control interface; stderr is diagnostics/evidence.
+9. After a gate failure in `--agent` mode, follow `nextAction.commands` only.
+10. On containment/classpath mismatch, run one `bear compile --all --project <repoRoot>` repair and rerun once; never move/copy impl or exception classes into `_shared`.
+11. If `nextAction` is `null`, route to `.bear/agent/TROUBLESHOOTING.md` using `(category, failureCode, ruleId|reasonKey)`.
+12. Completion requires both gates and minimal core reporting contract compliance:
 - `bear check --all --project <repoRoot> [--collect=all] --agent`
 - `bear pr-check --all --project <repoRoot> --base <ref> [--collect=all] --agent`
-
 ## Implementation Preconditions
 
 Before implementation edits, load `.bear/agent/TROUBLESHOOTING.md` and `.bear/agent/REPORTING.md`.
