@@ -1,10 +1,13 @@
-name: PR Gate
+name: BEAR CI Governance
 
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  pr-gate:
+  governance:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout demo
@@ -12,16 +15,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch base branch ref
-        run: |
-          git fetch --no-tags --prune --depth=1 origin \
-            +refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
-      - name: Run PR gate
-        run: |
-          set +e
-          bash ./bin/pr-gate.sh "origin/${{ github.base_ref }}" 2>&1 | tee pr-gate.log
-          code=${PIPESTATUS[0]}
-          set -e
-          grep -E '^(pr-delta:|pr-check:)' pr-gate.log >> "$GITHUB_STEP_SUMMARY" || true
-          exit $code
+      - name: Run BEAR governance (observe)
+        run: ./.bear/ci/bear-gates.sh --mode observe
+
+      - name: Upload BEAR CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bear-ci-governance
+          path: |
+            build/bear/ci/bear-ci-report.json
+            build/bear/ci/bear-ci-summary.md
+          if-no-files-found: error

@@ -10,5 +10,18 @@ Verification command:
 bear check --all --project .
 ```
 
+CI demo:
+- This repo uses the packaged BEAR CI wrapper under `.bear/ci/`.
+- GitHub Actions runs BEAR governance in `observe` mode for PR visibility rather than blocking on ordinary governance signals.
+- CI writes reviewer-facing artifacts to `build/bear/ci/bear-ci-report.json` and `build/bear/ci/bear-ci-summary.md`.
+- In CI, the PR target branch defines the governance comparison base.
+- Demo PR examples:
+  - `baseline/greenfield-output -> main`
+  - `scenario/02-feature-extension -> baseline/greenfield-output`
+
 Product specification:
 - `doc/SPEC.md`
+
+Branch context:
+- Branch role: demo main/spec-only base
+- Use this branch as the PR target for the greenfield baseline review.
