@@ -13,3 +13,8 @@ bear check --all --project .
 Product specifications:
 - `spec/SPEC.md`
 - `spec/SPEC.feature-extension.md`
+
+Branch context:
+- Branch role: feature-extension scenario
+- Cut from: `baseline/greenfield-output`
+- Use this governance base for `pr-check`: `origin/baseline/greenfield-output`
