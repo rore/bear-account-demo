@@ -10,5 +10,6 @@ Verification command:
 bear check --all --project .
 ```
 
-Product specification:
+Product specifications:
 - `spec/SPEC.md`
+- `spec/SPEC.feature-extension.md`
