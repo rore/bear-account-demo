@@ -23,6 +23,9 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Generate BEAR artifacts
+        run: ./.bear/tools/bear-cli/bin/bear compile --all --project .
+
       - name: Run BEAR governance (observe)
         run: ./.bear/ci/bear-gates.sh --mode observe
 
