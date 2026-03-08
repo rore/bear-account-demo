@@ -1,0 +1,10 @@
+version: v1
+blocks:
+  - name: account
+    ir: bear-ir/account.bear.yaml
+    projectRoot: .
+    enabled: true
+  - name: transaction-log
+    ir: bear-ir/transaction-log.bear.yaml
+    projectRoot: .
+    enabled: true

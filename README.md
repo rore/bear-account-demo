@@ -20,8 +20,9 @@ CI demo:
   - `scenario/02-feature-extension -> baseline/greenfield-output`
 
 Product specification:
-- `doc/SPEC.md`
+- `spec/SPEC.md`
 
 Branch context:
-- Branch role: demo main/spec-only base
-- Use this branch as the PR target for the greenfield baseline review.
+- Branch role: greenfield showcase review branch
+- Cut from: `main`
+- Use this governance base for `pr-check`: `origin/main`
