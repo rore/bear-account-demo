@@ -18,11 +18,13 @@ CI demo:
 - Demo PR examples:
   - `baseline/greenfield-output -> main`
   - `scenario/02-feature-extension -> baseline/greenfield-output`
+  - `scenario/03-boundary-expansion -> baseline/greenfield-output`
 
-Product specification:
+Product specifications:
 - `spec/SPEC.md`
+- `spec/SPEC.balance-alerts.md`
 
 Branch context:
-- Branch role: greenfield implementation baseline
-- Cut from: `scenario/01-agent-greenfield-implementation`
-- Use this governance base for `pr-check`: `origin/main`
+- Branch role: balance-alerts scenario
+- Cut from: `baseline/greenfield-output`
+- Use this governance base for `pr-check`: `origin/baseline/greenfield-output`
