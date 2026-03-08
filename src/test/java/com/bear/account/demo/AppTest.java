@@ -56,7 +56,33 @@ class AppTest {
     }
 
     @Test
-    void successfulOperationsAreIdempotentButFailuresAreNotSticky() throws Exception {
+    void failedWithdrawalsCreateAlertsAndDoNotChangeBalance() throws Exception {
+        server = App.createServer(0);
+        server.start();
+        HttpClient client = HttpClient.newHttpClient();
+        String baseUrl = "http://localhost:" + server.getAddress().getPort();
+
+        String accountId = extractString(send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-alerts\"}").body(), "accountId");
+        assertEquals(200, send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":100,\"requestId\":\"seed\"}").statusCode());
+
+        HttpResponse<String> failedWithdraw = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":250,\"requestId\":\"fail-1\"}");
+        assertEquals(409, failedWithdraw.statusCode());
+
+        HttpResponse<String> balance = send(client, "GET", baseUrl + "/accounts/" + accountId + "/balance", null);
+        assertEquals(200, balance.statusCode());
+        assertEquals(100, extractInt(balance.body(), "balanceCents"));
+
+        HttpResponse<String> alerts = send(client, "GET", baseUrl + "/accounts/" + accountId + "/alerts", null);
+        assertEquals(200, alerts.statusCode());
+        assertEquals(1, countOccurrences(alerts.body(), "\"alertSeq\":"));
+        assertEquals(1, extractInt(alerts.body(), "alertSeq"));
+        assertEquals("INSUFFICIENT_FUNDS_ATTEMPT", extractString(alerts.body(), "alertType"));
+        assertEquals("fail-1", extractString(alerts.body(), "requestId"));
+        assertEquals(accountId, extractString(alerts.body(), "accountId"));
+    }
+
+    @Test
+    void successfulOperationsAreIdempotentButFailedRetriesRemainNonSticky() throws Exception {
         server = App.createServer(0);
         server.start();
         HttpClient client = HttpClient.newHttpClient();
@@ -70,7 +96,13 @@ class AppTest {
         assertEquals(firstDeposit.body(), replayDeposit.body());
 
         HttpResponse<String> failedWithdraw = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":500,\"requestId\":\"same-withdraw\"}");
+        HttpResponse<String> failedWithdrawRetry = send(client, "POST", baseUrl + "/accounts/" + accountId + "/withdraw", "{\"amountCents\":500,\"requestId\":\"same-withdraw\"}");
         assertEquals(409, failedWithdraw.statusCode());
+        assertEquals(409, failedWithdrawRetry.statusCode());
+
+        HttpResponse<String> alertsAfterFailures = send(client, "GET", baseUrl + "/accounts/" + accountId + "/alerts", null);
+        assertEquals(200, alertsAfterFailures.statusCode());
+        assertEquals(2, countOccurrences(alertsAfterFailures.body(), "\"alertSeq\":"));
 
         HttpResponse<String> secondDeposit = send(client, "POST", baseUrl + "/accounts/" + accountId + "/deposit", "{\"amountCents\":400,\"requestId\":\"top-up\"}");
         assertEquals(200, secondDeposit.statusCode());
@@ -93,6 +125,9 @@ class AppTest {
 
         HttpResponse<String> missingAccount = send(client, "GET", baseUrl + "/accounts/missing/balance", null);
         assertEquals(404, missingAccount.statusCode());
+
+        HttpResponse<String> missingAlertsAccount = send(client, "GET", baseUrl + "/accounts/missing/alerts", null);
+        assertEquals(404, missingAlertsAccount.statusCode());
 
         String accountId = extractString(send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-3\"}").body(), "accountId");
         HttpResponse<String> invalidSince = send(client, "GET", baseUrl + "/accounts/" + accountId + "/transactions?sinceSeq=-1", null);

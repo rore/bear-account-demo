@@ -1,0 +1,48 @@
+version: v1
+block:
+  name: AlertLog
+  kind: logic
+  operations:
+    - name: AppendAlert
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+          - name: alertType
+            type: string
+          - name: requestId
+            type: string
+          - name: message
+            type: string
+        outputs:
+          - name: alertSeq
+            type: int
+      uses:
+        allow:
+          - port: alertStore
+            kind: external
+            ops: [append]
+      invariants:
+        - kind: non_negative
+          field: alertSeq
+    - name: GetAlerts
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+        outputs:
+          - name: alertsJson
+            type: string
+      uses:
+        allow:
+          - port: alertStore
+            kind: external
+            ops: [list]
+  effects:
+    allow:
+      - port: alertStore
+        kind: external
+        ops: [append, list]
+  invariants:
+    - kind: non_negative
+      field: alertSeq
