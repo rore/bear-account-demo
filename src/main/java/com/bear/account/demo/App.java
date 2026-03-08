@@ -56,6 +56,10 @@ public final class App {
                 handleGetTransactions(exchange, segments[2]);
                 return;
             }
+            if (segments.length == 4 && "accounts".equals(segments[1]) && "alerts".equals(segments[3]) && "GET".equals(method)) {
+                handleGetAlerts(exchange, segments[2]);
+                return;
+            }
 
             sendJson(exchange, 404, "{\"error\":\"not found\"}");
         } catch (AccountNotFoundException e) {
@@ -99,6 +103,11 @@ public final class App {
         int sinceSeq = readSinceSeq(exchange.getRequestURI().getRawQuery());
         String transactionsJson = application.getTransactionsJson(accountId, sinceSeq);
         sendJson(exchange, 200, "{\"transactions\":" + transactionsJson + "}");
+    }
+
+    private void handleGetAlerts(HttpExchange exchange, String accountId) throws IOException {
+        String alertsJson = application.getAlertsJson(accountId);
+        sendJson(exchange, 200, "{\"alerts\":" + alertsJson + "}");
     }
 
     private static int readSinceSeq(String rawQuery) {

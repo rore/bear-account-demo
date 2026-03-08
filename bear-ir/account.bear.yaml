@@ -68,6 +68,9 @@ block:
           - port: accountStore
             kind: external
             ops: [get, put]
+          - port: alertLog
+            kind: block
+            targetOps: [AppendAlert]
           - port: transactionLog
             kind: block
             targetOps: [AppendTransaction]
@@ -107,6 +110,10 @@ block:
         kind: block
         targetBlock: transaction-log
         targetOps: [AppendTransaction]
+      - port: alertLog
+        kind: block
+        targetBlock: alert-log
+        targetOps: [AppendAlert]
       - port: idempotency
         kind: external
         ops: [get, put]

@@ -8,3 +8,7 @@ blocks:
     ir: bear-ir/transaction-log.bear.yaml
     projectRoot: .
     enabled: true
+  - name: alert-log
+    ir: bear-ir/alert-log.bear.yaml
+    projectRoot: .
+    enabled: true

@@ -12,10 +12,13 @@ import com.bear.generated.account.Account_GetBalanceRequest;
 import com.bear.generated.account.Account_GetBalanceResult;
 import com.bear.generated.account.Account_WithdrawRequest;
 import com.bear.generated.account.Account_WithdrawResult;
+import com.bear.generated.account.AlertLogPort;
 import com.bear.generated.account.BearValue;
 import com.bear.generated.account.TransactionLogPort;
 
 public final class AccountImpl implements AccountLogic {
+    private static final String INSUFFICIENT_FUNDS_ALERT = "INSUFFICIENT_FUNDS_ATTEMPT";
+
     @Override
     public Account_CreateAccountResult executeCreateAccount(Account_CreateAccountRequest request, AccountStorePort accountStorePort) {
         requireNonBlank(request.getOwnerId(), "ownerId");
@@ -48,11 +51,21 @@ public final class AccountImpl implements AccountLogic {
     }
 
     @Override
-    public Account_WithdrawResult executeWithdraw(Account_WithdrawRequest request, AccountStorePort accountStorePort, TransactionLogPort transactionLogPort) {
+    public Account_WithdrawResult executeWithdraw(
+        Account_WithdrawRequest request,
+        AccountStorePort accountStorePort,
+        AlertLogPort alertLogPort,
+        TransactionLogPort transactionLogPort
+    ) {
         int amountCents = requirePositiveAmount(request.getAmountCents());
         requireNonBlank(request.getRequestId(), "requestId");
         AccountState account = loadAccount(request.getAccountId(), accountStorePort);
         if (account.balanceCents() < amountCents) {
+            appendAlert(
+                alertLogPort,
+                account.accountId(),
+                request.getRequestId(),
+                "Insufficient funds for withdrawal attempt of " + amountCents + " cents");
             throw new InsufficientFundsException(account.accountId());
         }
 
@@ -80,6 +93,16 @@ public final class AccountImpl implements AccountLogic {
             .put("ownerId", ownerId)
             .put("balanceCents", Integer.toString(balanceCents))
             .build();
+    }
+
+    private static void appendAlert(AlertLogPort alertLogPort, String accountId, String requestId, String message) {
+        alertLogPort.call(BearValue.builder()
+            .put("op", "AppendAlert")
+            .put("accountId", accountId)
+            .put("alertType", INSUFFICIENT_FUNDS_ALERT)
+            .put("requestId", requestId)
+            .put("message", message)
+            .build());
     }
 
     private static int appendTransaction(
