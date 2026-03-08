@@ -16,6 +16,9 @@ import com.bear.generated.account.BearValue;
 import com.bear.generated.account.TransactionLogPort;
 
 public final class AccountImpl implements AccountLogic {
+    private static final String NOTE_ABSENT_SENTINEL = "__BEAR_NOTE_ABSENT__";
+    private static final String NOTE_EMPTY_SENTINEL = "__BEAR_NOTE_EMPTY__";
+
     @Override
     public Account_CreateAccountResult executeCreateAccount(Account_CreateAccountRequest request, AccountStorePort accountStorePort) {
         requireNonBlank(request.getOwnerId(), "ownerId");
@@ -37,7 +40,7 @@ public final class AccountImpl implements AccountLogic {
 
         int balanceAfterCents = account.balanceCents() + amountCents;
         accountStorePort.put(toAccountValue(account.accountId(), account.ownerId(), balanceAfterCents));
-        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "DEPOSIT", request.getRequestId(), amountCents, balanceAfterCents);
+        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "DEPOSIT", request.getRequestId(), amountCents, balanceAfterCents, request.getNote());
         return new Account_DepositResult(balanceAfterCents, txSeq);
     }
 
@@ -58,7 +61,7 @@ public final class AccountImpl implements AccountLogic {
 
         int balanceAfterCents = account.balanceCents() - amountCents;
         accountStorePort.put(toAccountValue(account.accountId(), account.ownerId(), balanceAfterCents));
-        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "WITHDRAW", request.getRequestId(), amountCents, balanceAfterCents);
+        int txSeq = appendTransaction(transactionLogPort, account.accountId(), "WITHDRAW", request.getRequestId(), amountCents, balanceAfterCents, request.getNote());
         return new Account_WithdrawResult(balanceAfterCents, txSeq);
     }
 
@@ -88,7 +91,8 @@ public final class AccountImpl implements AccountLogic {
         String type,
         String requestId,
         int amountCents,
-        int balanceAfterCents
+        int balanceAfterCents,
+        String note
     ) {
         BearValue result = transactionLogPort.call(BearValue.builder()
             .put("op", "AppendTransaction")
@@ -97,8 +101,19 @@ public final class AccountImpl implements AccountLogic {
             .put("requestId", requestId)
             .put("amountCents", Integer.toString(amountCents))
             .put("balanceAfterCents", Integer.toString(balanceAfterCents))
+            .put("note", encodeNote(note))
             .build());
         return parseInt(result.get("txSeq"), "txSeq");
+    }
+
+    private static String encodeNote(String note) {
+        if (note == null) {
+            return NOTE_ABSENT_SENTINEL;
+        }
+        if (note.isEmpty()) {
+            return NOTE_EMPTY_SENTINEL;
+        }
+        return note;
     }
 
     private static int requirePositiveAmount(Integer amountCents) {

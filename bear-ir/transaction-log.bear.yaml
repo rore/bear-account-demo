@@ -16,6 +16,8 @@ block:
             type: int
           - name: balanceAfterCents
             type: int
+          - name: note
+            type: string
         outputs:
           - name: txSeq
             type: int

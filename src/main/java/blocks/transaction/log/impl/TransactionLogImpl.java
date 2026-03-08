@@ -9,6 +9,9 @@ import com.bear.generated.transaction.log.TransactionLog_GetTransactionsResult;
 import com.bear.generated.transaction.log.TransactionStorePort;
 
 public final class TransactionLogImpl implements TransactionLogLogic {
+    private static final String NOTE_ABSENT_SENTINEL = "__BEAR_NOTE_ABSENT__";
+    private static final String NOTE_EMPTY_SENTINEL = "__BEAR_NOTE_EMPTY__";
+
     @Override
     public TransactionLog_AppendTransactionResult executeAppendTransaction(TransactionLog_AppendTransactionRequest request, TransactionStorePort transactionStorePort) {
         requireNonBlank(request.getAccountId(), "accountId");
@@ -21,13 +24,18 @@ public final class TransactionLogImpl implements TransactionLogLogic {
             throw new IllegalArgumentException("balanceAfterCents must be >= 0");
         }
 
-        BearValue stored = transactionStorePort.append(BearValue.builder()
+        BearValue.Builder builder = BearValue.builder()
             .put("accountId", request.getAccountId())
             .put("type", request.getType())
             .put("requestId", request.getRequestId())
             .put("amountCents", Integer.toString(request.getAmountCents()))
-            .put("balanceAfterCents", Integer.toString(request.getBalanceAfterCents()))
-            .build());
+            .put("balanceAfterCents", Integer.toString(request.getBalanceAfterCents()));
+        String decodedNote = decodeNote(request.getNote());
+        if (decodedNote != null) {
+            builder.put("note", decodedNote);
+        }
+
+        BearValue stored = transactionStorePort.append(builder.build());
         return new TransactionLog_AppendTransactionResult(parseInt(stored.get("txSeq"), "txSeq"));
     }
 
@@ -43,6 +51,16 @@ public final class TransactionLogImpl implements TransactionLogLogic {
             .put("sinceSeq", Integer.toString(request.getSinceSeq()))
             .build());
         return new TransactionLog_GetTransactionsResult(defaultJson(listed.get("transactionsJson")));
+    }
+
+    private static String decodeNote(String note) {
+        if (NOTE_ABSENT_SENTINEL.equals(note)) {
+            return null;
+        }
+        if (NOTE_EMPTY_SENTINEL.equals(note)) {
+            return "";
+        }
+        return note;
     }
 
     private static void requireNonBlank(String value, String field) {

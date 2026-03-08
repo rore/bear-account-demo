@@ -2,8 +2,6 @@ package com.bear.account.demo;
 
 import blocks.account.adapter.InMemoryAccountStorePort;
 import blocks.account.adapter.InMemoryIdempotencyPort;
-import blocks.account.impl.AccountNotFoundException;
-import blocks.account.impl.InsufficientFundsException;
 import blocks.transaction.log.adapter.InMemoryTransactionStorePort;
 
 import com.bear.generated.account.Account_CreateAccount;
@@ -45,12 +43,12 @@ public final class AccountApplication {
         return createAccount.execute(new Account_CreateAccountRequest(ownerId)).getAccountId();
     }
 
-    public OperationResult deposit(String accountId, Integer amountCents, String requestId) {
-        return toOperationResult(deposit.execute(new Account_DepositRequest(accountId, amountCents, requestId)));
+    public OperationResult deposit(String accountId, Integer amountCents, String requestId, String note) {
+        return toOperationResult(deposit.execute(new Account_DepositRequest(accountId, amountCents, note, requestId)));
     }
 
-    public OperationResult withdraw(String accountId, Integer amountCents, String requestId) {
-        return toOperationResult(withdraw.execute(new Account_WithdrawRequest(accountId, amountCents, requestId)));
+    public OperationResult withdraw(String accountId, Integer amountCents, String requestId, String note) {
+        return toOperationResult(withdraw.execute(new Account_WithdrawRequest(accountId, amountCents, note, requestId)));
     }
 
     public int getBalance(String accountId) {

@@ -25,6 +25,8 @@ block:
             type: int
           - name: requestId
             type: string
+          - name: note
+            type: string
         outputs:
           - name: balanceCents
             type: int
@@ -57,6 +59,8 @@ block:
           - name: amountCents
             type: int
           - name: requestId
+            type: string
+          - name: note
             type: string
         outputs:
           - name: balanceCents
