@@ -1,6 +1,8 @@
 package com.bear.account.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.URI;
@@ -79,6 +81,35 @@ class AppTest {
         assertEquals(200, retriedWithdraw.statusCode());
         assertEquals(200, extractInt(retriedWithdraw.body(), "balanceCents"));
         assertEquals(3, extractInt(retriedWithdraw.body(), "txSeq"));
+    }
+
+    @Test
+    void transactionsPreserveOptionalNotes() throws Exception {
+        server = App.createServer(0);
+        server.start();
+        HttpClient client = HttpClient.newHttpClient();
+        String baseUrl = "http://localhost:" + server.getAddress().getPort();
+
+        String accountId = extractString(send(client, "POST", baseUrl + "/accounts", "{\"ownerId\":\"owner-4\"}").body(), "accountId");
+
+        HttpResponse<String> deposit = send(
+            client,
+            "POST",
+            baseUrl + "/accounts/" + accountId + "/deposit",
+            "{\"amountCents\":700,\"requestId\":\"note-deposit\",\"note\":\"paycheck\"}");
+        assertEquals(200, deposit.statusCode());
+
+        HttpResponse<String> withdraw = send(
+            client,
+            "POST",
+            baseUrl + "/accounts/" + accountId + "/withdraw",
+            "{\"amountCents\":200,\"requestId\":\"note-withdraw\"}");
+        assertEquals(200, withdraw.statusCode());
+
+        HttpResponse<String> transactions = send(client, "GET", baseUrl + "/accounts/" + accountId + "/transactions", null);
+        assertEquals(200, transactions.statusCode());
+        assertTrue(transactions.body().contains("\"note\":\"paycheck\""));
+        assertFalse(transactions.body().contains("\"requestId\":\"note-withdraw\",\"amountCents\":200,\"balanceAfterCents\":500,\"note\""));
     }
 
     @Test

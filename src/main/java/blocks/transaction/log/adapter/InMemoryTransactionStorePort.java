@@ -21,7 +21,8 @@ public final class InMemoryTransactionStorePort implements TransactionStorePort 
             required(input, "type"),
             required(input, "requestId"),
             Integer.parseInt(required(input, "amountCents")),
-            Integer.parseInt(required(input, "balanceAfterCents"))));
+            Integer.parseInt(required(input, "balanceAfterCents")),
+            input.get("note")));
         return BearValue.builder().put("txSeq", Integer.toString(nextSeq)).build();
     }
 
@@ -45,8 +46,11 @@ public final class InMemoryTransactionStorePort implements TransactionStorePort 
                 .append(",\"type\":\"").append(escape(transaction.type())).append('\"')
                 .append(",\"requestId\":\"").append(escape(transaction.requestId())).append('\"')
                 .append(",\"amountCents\":").append(transaction.amountCents())
-                .append(",\"balanceAfterCents\":").append(transaction.balanceAfterCents())
-                .append('}');
+                .append(",\"balanceAfterCents\":").append(transaction.balanceAfterCents());
+            if (transaction.note() != null) {
+                json.append(",\"note\":\"").append(escape(transaction.note())).append('\"');
+            }
+            json.append('}');
         }
         json.append(']');
         return BearValue.builder().put("transactionsJson", json.toString()).build();
@@ -64,6 +68,6 @@ public final class InMemoryTransactionStorePort implements TransactionStorePort 
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    private record TransactionRecord(int seq, String type, String requestId, int amountCents, int balanceAfterCents) {
+    private record TransactionRecord(int seq, String type, String requestId, int amountCents, int balanceAfterCents, String note) {
     }
 }

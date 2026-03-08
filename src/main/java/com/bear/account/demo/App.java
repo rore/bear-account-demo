@@ -80,13 +80,21 @@ public final class App {
 
     private void handleDeposit(HttpExchange exchange, String accountId) throws IOException {
         String body = readBody(exchange);
-        AccountApplication.OperationResult result = application.deposit(accountId, requireInt(body, "amountCents"), requireString(body, "requestId"));
+        AccountApplication.OperationResult result = application.deposit(
+            accountId,
+            requireInt(body, "amountCents"),
+            requireString(body, "requestId"),
+            optionalString(body, "note"));
         sendJson(exchange, 200, "{\"balanceCents\":" + result.balanceCents() + ",\"txSeq\":" + result.txSeq() + "}");
     }
 
     private void handleWithdraw(HttpExchange exchange, String accountId) throws IOException {
         String body = readBody(exchange);
-        AccountApplication.OperationResult result = application.withdraw(accountId, requireInt(body, "amountCents"), requireString(body, "requestId"));
+        AccountApplication.OperationResult result = application.withdraw(
+            accountId,
+            requireInt(body, "amountCents"),
+            requireString(body, "requestId"),
+            optionalString(body, "note"));
         sendJson(exchange, 200, "{\"balanceCents\":" + result.balanceCents() + ",\"txSeq\":" + result.txSeq() + "}");
     }
 
@@ -143,6 +151,14 @@ public final class App {
             throw new IllegalArgumentException(field + " is required");
         }
         return Integer.valueOf(matcher.group(1));
+    }
+
+    private static String optionalString(String body, String field) {
+        Matcher matcher = Pattern.compile("\"" + field + "\"\\s*:\\s*\"([^\"]*)\"").matcher(body);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1);
     }
 
     private static String escape(String value) {
