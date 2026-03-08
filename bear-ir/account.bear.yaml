@@ -1,0 +1,122 @@
+version: v1
+block:
+  name: Account
+  kind: logic
+  operations:
+    - name: CreateAccount
+      contract:
+        inputs:
+          - name: ownerId
+            type: string
+        outputs:
+          - name: accountId
+            type: string
+      uses:
+        allow:
+          - port: accountStore
+            kind: external
+            ops: [create]
+    - name: Deposit
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+          - name: amountCents
+            type: int
+          - name: requestId
+            type: string
+        outputs:
+          - name: balanceCents
+            type: int
+          - name: txSeq
+            type: int
+      uses:
+        allow:
+          - port: accountStore
+            kind: external
+            ops: [get, put]
+          - port: transactionLog
+            kind: block
+            targetOps: [AppendTransaction]
+          - port: idempotency
+            kind: external
+            ops: [get, put]
+      idempotency:
+        mode: use
+        keyFromInputs: [accountId, requestId]
+      invariants:
+        - kind: non_negative
+          field: balanceCents
+        - kind: non_negative
+          field: txSeq
+    - name: Withdraw
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+          - name: amountCents
+            type: int
+          - name: requestId
+            type: string
+        outputs:
+          - name: balanceCents
+            type: int
+          - name: txSeq
+            type: int
+      uses:
+        allow:
+          - port: accountStore
+            kind: external
+            ops: [get, put]
+          - port: transactionLog
+            kind: block
+            targetOps: [AppendTransaction]
+          - port: idempotency
+            kind: external
+            ops: [get, put]
+      idempotency:
+        mode: use
+        keyFromInputs: [accountId, requestId]
+      invariants:
+        - kind: non_negative
+          field: balanceCents
+        - kind: non_negative
+          field: txSeq
+    - name: GetBalance
+      contract:
+        inputs:
+          - name: accountId
+            type: string
+        outputs:
+          - name: balanceCents
+            type: int
+      uses:
+        allow:
+          - port: accountStore
+            kind: external
+            ops: [get]
+      invariants:
+        - kind: non_negative
+          field: balanceCents
+  effects:
+    allow:
+      - port: accountStore
+        kind: external
+        ops: [create, get, put]
+      - port: transactionLog
+        kind: block
+        targetBlock: transaction-log
+        targetOps: [AppendTransaction]
+      - port: idempotency
+        kind: external
+        ops: [get, put]
+  idempotency:
+    store:
+      port: idempotency
+      getOp: get
+      putOp: put
+  invariants:
+    - kind: non_negative
+      field: balanceCents
+    - kind: non_negative
+      field: txSeq
