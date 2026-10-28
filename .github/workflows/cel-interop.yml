@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
       - name: Verify harness bundle and pinned runtimes
         run: |
-          echo "8f492dfc590aa172790ed66db9cf3860b363942e39391fb9b69d766f32f33d2c  harness.tar.xz" | sha256sum -c -
+          echo "edb897c32dad434de4a7621fd540f5bf6c6a1bcbcf7f1b5e014c4c4a207d87ce  harness.tar.xz" | sha256sum -c -
           tar -xJf harness.tar.xz
           java -version
           mvn -version

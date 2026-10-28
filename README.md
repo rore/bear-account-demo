@@ -2,7 +2,7 @@
 
 A temporary public CI branch in `rore/bear-account-demo`. No changes to the default branch.
 
-The exact corrected harness is stored in `harness.tar.xz` (SHA-256: `8f492dfc590aa172790ed66db9cf3860b363942e39391fb9b69d766f32f33d2c`). It was copied from the earlier CEL interoperability spike, with CEL-Java pinned to published `0.14.0`, manifest checks updated accordingly, and npm installation adapted to the existing package without a lock file.
+The exact corrected harness is stored in `harness.tar.xz` (SHA-256: `edb897c32dad434de4a7621fd540f5bf6c6a1bcbcf7f1b5e014c4c4a207d87ce`). It was copied from the earlier CEL interoperability spike, with CEL-Java pinned to published `0.14.0`, manifest checks updated accordingly, and npm installation adapted to the existing package without a lock file.
 
 Reproduce on Java 21 + Node 22 + Maven + npm:
 
