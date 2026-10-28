@@ -1,0 +1,47 @@
+name: Java CEL -> Node CEL-ES published-binary parity
+
+on:
+  push:
+    branches:
+      - spike/cel-java-node-interop-20261028
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify harness bundle and pinned runtimes
+        run: |
+          echo "8f492dfc590aa172790ed66db9cf3860b363942e39391fb9b69d766f32f33d2c  harness.tar.xz" | sha256sum -c -
+          tar -xJf harness.tar.xz
+          java -version
+          mvn -version
+          node --version
+          npm --version
+          grep -A1 '<artifactId>cel</artifactId>' spike/java/pom.xml
+          grep '"@bufbuild/cel": "0.6.1"' spike/node/package.json
+      - name: Execute real-library smoke, fixtures and benchmark (fail fast)
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p results
+          bash spike/run-real-libraries.sh 2>&1 | tee results/ci-run.log
+      - name: Upload test outputs and CI logs even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cel-cross-language-results
+          path: results/
+          if-no-files-found: warn
